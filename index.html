@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gestão de Riscos (Slack + FQA)</title>
+    
+    <!-- Bibliotecas -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        
+        .chart-box-container {
+            width: 100%;
+            max-width: 680px; 
+            aspect-ratio: 1; 
+            margin: 0 auto;
+            position: relative;
+        }
+
+        /* Estilização da Tabela */
+        th { font-size: 0.75rem; text-transform: uppercase; background-color: #f1f5f9; color: #475569; padding: 8px; border: 1px solid #e2e8f0; }
+        td { font-size: 0.8rem; padding: 6px 8px; border: 1px solid #e2e8f0; text-align: center; }
+        
+        canvas { touch-action: none; }
+    </style>
+</head>
+<body class="h-screen overflow-hidden flex flex-col">
+
+    <div id="app" class="flex flex-col h-full">
+        
+        <!-- Header -->
+        <header class="bg-slate-900 text-white p-4 shadow-md flex justify-between items-center z-10 shrink-0">
+            <div>
+                <h1 class="text-xl font-bold tracking-tight">Engenharia de Segurança - Análise de Riscos</h1>
+                <p class="text-xs text-slate-400">Metodologia Híbrida: Slack (Importância x Desempenho) & FQA (Severidade x Probabilidade)</p>
+            </div>
+            <div class="flex gap-2">
+                <button @click="carregarExemplos" class="px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded text-sm transition border border-slate-600">
+                    Carregar Exemplos
+                </button>
+                <button @click="exportarExcel" class="px-4 py-2 bg-green-700 hover:bg-green-600 rounded font-bold text-sm flex items-center gap-2 transition shadow">
+                    Exportar Excel
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex overflow-hidden">
+            
+            <!-- Coluna Esquerda: Gráficos -->
+            <div class="w-2/5 p-4 flex flex-col gap-6 overflow-y-auto bg-gray-50 border-r border-gray-300">
+                
+                <!-- Gráfico SLACK -->
+                <div class="bg-white p-2 rounded-lg shadow-sm border border-gray-200 w-full">
+                    <h3 class="font-bold text-gray-800 text-sm mb-2 border-b pb-1 px-2">MATRIZ IMPORTÂNCIA X DESEMPENHO</h3>
+                    <div class="chart-box-container">
+                        <canvas id="slackChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Gráfico FQA -->
+                <div class="bg-white p-2 rounded-lg shadow-sm border border-gray-200 w-full mb-8">
+                    <h3 class="font-bold text-gray-800 text-sm mb-2 border-b pb-1 px-2">MATRIZ DE RISCO (Severidade x Probabilidade)</h3>
+                    <div class="chart-box-container">
+                        <canvas id="fqaChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Coluna Direita: Inputs e Tabela -->
+            <div class="w-3/5 flex flex-col bg-white shadow-xl z-20">
+                
+                <!-- Formulário -->
+                <div class="p-4 bg-slate-50 border-b border-gray-200">
+                    <h2 class="text-sm font-bold text-slate-700 mb-3 uppercase tracking-wide">Adicionar / Editar Risco</h2>
+                    <form @submit.prevent="adicionarRisco" class="space-y-3">
+                        <div class="grid grid-cols-6 gap-3">
+                            <div class="col-span-1">
+                                <label class="block text-[10px] font-bold text-gray-500 uppercase">ID</label>
+                                <input v-model.number="form.id" type="number" required class="w-full mt-1 p-1.5 border rounded border-gray-300 focus:border-blue-500 focus:outline-none text-sm" placeholder="1">
+                            </div>
+                            <div class="col-span-5">
+                                <label class="block text-[10px] font-bold text-gray-500 uppercase">Rubrica de Segurança</label>
+                                <input v-model="form.rubrica" type="text" required class="w-full mt-1 p-1.5 border rounded border-gray-300 focus:border-blue-500 focus:outline-none text-sm" placeholder="Descrição do Risco">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-6">
+                            <div class="bg-white p-2 rounded border border-gray-200">
+                                <div class="flex justify-between mb-1">
+                                    <label class="text-xs font-bold text-gray-700">Importância (1-9)</label>
+                                    <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 rounded">{{ form.imp }}</span>
+                                </div>
+                                <input type="range" v-model.number="form.imp" min="1" max="9" step="1" class="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                            </div>
+                            <div class="bg-white p-2 rounded border border-gray-200">
+                                <div class="flex justify-between mb-1">
+                                    <label class="text-xs font-bold text-gray-700">Desempenho (1-9)</label>
+                                    <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 rounded">{{ form.des }}</span>
+                                </div>
+                                <input type="range" v-model.number="form.des" min="1" max="9" step="1" class="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                            </div>
+                        </div>
+                        <button type="submit" class="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-1.5 px-4 rounded shadow text-sm">{{ modoEdicao ? 'Atualizar Dados' : 'Adicionar à Tabela' }}</button>
+                        <button v-if="modoEdicao" @click="cancelarEdicao" type="button" class="w-full mt-1 text-gray-500 text-xs underline">Cancelar</button>
+                    </form>
+                </div>
+
+                <!-- Tabela -->
+                <div class="flex-1 overflow-auto p-0">
+                    <table class="w-full border-collapse">
+                        <thead class="bg-gray-100 sticky top-0 z-10 shadow-sm">
+                            <tr>
+                                <th class="w-10">ID</th>
+                                <th class="text-left min-w-[150px]">Rubrica</th>
+                                <th>Imp<br>(S)</th>
+                                <th>Des<br>(S)</th>
+                                <th>Diag.<br>(Slack)</th>
+                                <th>Sev<br>(FQA)</th>
+                                <th class="min-w-[100px]">Descrição<br>Sev</th>
+                                <th>Prob<br>(FQA)</th>
+                                <th class="min-w-[100px]">Descrição<br>Prob</th>
+                                <th class="min-w-[100px]">Nível de Risco<br>(FQA)</th>
+                                <th>Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="risco in riscosOrdenados" :key="risco.id" class="hover:bg-blue-50 transition group">
+                                <td class="font-mono font-bold text-gray-600">{{ risco.id }}</td>
+                                <td class="text-left font-medium text-gray-800">{{ risco.rubrica }}</td>
+                                <td>{{ risco.imp }}</td>
+                                <td>{{ risco.des }}</td>
+                                <td><span class="px-2 py-0.5 rounded text-[10px] font-bold border border-gray-200 bg-gray-100">{{ risco.diagSlack }}</span></td>
+                                <td class="font-bold">{{ risco.sev }}</td>
+                                <td class="text-xs text-gray-500">{{ risco.descSev }}</td>
+                                <td class="font-bold">{{ risco.prob }}</td>
+                                <td class="text-xs text-gray-500">{{ risco.descProb }}</td>
+                                <td :style="badgeStyleFQA(risco.nivelRisco)" class="font-bold border border-black/20">{{ risco.nivelRisco }}</td>
+                                <td>
+                                    <div class="flex justify-center gap-2">
+                                        <button @click="editarRisco(risco)" class="text-blue-600 hover:text-blue-800">✎</button>
+                                        <button @click="excluirRisco(risco.id)" class="text-red-600 hover:text-red-800">✕</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+    const { createApp, ref, computed, onMounted } = Vue;
+
+    // --- DADOS BRUTOS (CSV) ---
+    const rawDataStr = `1	1	3.3	4.353455
+1.016032064	1	3.306212425	4.353579773
+1.032064128	1	3.31242485	4.353750908
+1.048096192	1	3.318637275	4.353968659
+1.064128257	1	3.324849699	4.354233279
+1.080160321	1	3.331062124	4.354545019
+1.096192385	1	3.337274549	4.354904134
+1.112224449	1	3.343486974	4.355310875
+1.128256513	1	3.349699399	4.355765496
+1.144288577	1	3.355911824	4.356268249
+1.160320641	1	3.362124248	4.356819386
+1.176352705	1	3.368336673	4.357419162
+1.19238477	1	3.374549098	4.358067828
+1.208416834	1	3.380761523	4.358765637
+1.224448898	1	3.386973948	4.359512842
+1.240480962	1	3.393186373	4.360309696
+1.256513026	1	3.399398798	4.361156451
+1.27254509	1	3.405611222	4.36205336
+1.288577154	1	3.411823647	4.363000676
+1.304609218	1	3.418036072	4.363998653
+1.320641283	1	3.424248497	4.365047541
+1.336673347	1	3.430460922	4.366147595
+1.352705411	1	3.436673347	4.367299067
+1.368737475	1	3.442885772	4.368502209
+1.384769539	1	3.449098196	4.369757275
+1.400801603	1	3.455310621	4.371064517
+1.416833667	1	3.461523046	4.372424188
+1.432865731	1	3.467735471	4.373836541
+1.448897796	1	3.473947896	4.375301829
+1.46492986	1	3.480160321	4.376820303
+1.480961924	1	3.486372745	4.378392218
+1.496993988	1	3.49258517	4.380017826
+1.513026052	1	3.498797595	4.381697379
+1.529058116	1	3.50501002	4.38343113
+1.54509018	1	3.511222445	4.385219332
+1.561122244	1	3.51743487	4.387062238
+1.577154309	1	3.523647295	4.388960101
+1.593186373	1	3.529859719	4.390913173
+1.609218437	1	3.536072144	4.392921706
+1.625250501	1	3.542284569	4.394985955
+1.641282565	1	3.548496994	4.397106171
+1.657314629	1	3.554709419	4.399282608
+1.673346693	1	3.560921844	4.401515518
+1.689378758	1	3.567134269	4.403805153
+1.705410822	1	3.573346693	4.406151767
+1.721442886	1	3.579559118	4.408555612
+1.73747495	1	3.585771543	4.411016942
+1.753507014	1	3.591983968	4.413536008
+1.769539078	1	3.598196393	4.416113064
+1.785571142	1	3.604408818	4.418748362
+1.801603206	1	3.610621242	4.421442155
+1.817635271	1	3.616833667	4.424194696
+1.833667335	1	3.623046092	4.427006237
+1.849699399	1	3.629258517	4.429877032
+1.865731463	1	3.635470942	4.432807334
+1.881763527	1	3.641683367	4.435797393
+1.897795591	1	3.647895792	4.438847465
+1.913827655	1	3.654108216	4.441957801
+1.929859719	1	3.660320641	4.445128654
+1.945891784	1	3.666533066	4.448360277
+1.961923848	1	3.672745491	4.451652922
+1.977955912	1	3.678957916	4.455006843
+1.993987976	1	3.685170341	4.458422292
+2.01002004	1	3.691382766	4.461899522
+2.026052104	1	3.69759519	4.465438786
+2.042084168	1	3.703807615	4.469040336
+2.058116232	1	3.71002004	4.472704425
+2.074148297	1	3.716232465	4.476431306
+2.090180361	1	3.72244489	4.480221232
+2.106212425	1	3.728657315	4.484074455
+2.122244489	1	3.734869739	4.487991228
+2.138276553	1	3.741082164	4.491971804
+2.154308617	1	3.747294589	4.496016436
+2.170340681	1	3.753507014	4.500125376
+2.186372745	1	3.759719439	4.504298878
+2.20240481	1	3.765931864	4.508537193
+2.218436874	1	3.772144289	4.512840575
+2.234468938	1	3.778356713	4.517209277
+2.250501002	1	3.784569138	4.52164355
+2.266533066	1	3.790781563	4.526143649
+2.28256513	1	3.796993988	4.530709826
+2.298597194	1	3.803206413	4.535342332
+2.314629259	1	3.809418838	4.540041422
+2.330661323	1	3.815631263	4.544807348
+2.346693387	1	3.821843687	4.549640363
+2.362725451	1	3.828056112	4.554540719
+2.378757515	1	3.834268537	4.55950867
+2.394789579	1	3.840480962	4.564544467
+2.410821643	1	3.846693387	4.569648365
+2.426853707	1	3.852905812	4.574820614
+2.44289	1	3.859118	4.580061
+2.45892	1	3.865331	4.585371
+2.47495	1	3.871543	4.59075
+2.49098	1	3.877756	4.596198
+2.50701	1	3.883968	4.601716
+2.52305	1	3.89018	4.607304
+2.53908	1	3.896393	4.612961
+2.55511	1	3.902605	4.61869
+2.57114	1	3.908818	4.624488
+2.58717	1	3.91503	4.630358
+2.60321	1	3.921242	4.636299
+2.61924	1	3.927455	4.642311
+2.63527	1	3.933667	4.648395
+2.6513	1	3.93988	4.654551
+2.66733	1	3.946092	4.660779
+2.68337	1	3.952305	4.667079
+2.6994	1	3.958517	4.673452
+2.71543	1	3.964729	4.679898
+2.73146	1	3.970942	4.686416
+2.74749	1	3.977154	4.693009
+2.76353	1	3.983367	4.699675
+2.77956	1	3.989579	4.706415
+2.79559	1	3.995792	4.713229
+2.81162	1	4.002004	4.720118
+2.82766	1	4.008216	4.727081
+2.84369	1	4.014429	4.734119
+2.85972	1	4.020641	4.741232
+2.87575	1	4.026854	4.748421
+2.89178	1	4.033066	4.755685
+2.90782	1	4.039279	4.763026
+2.92385	1	4.045491	4.770442
+2.93988	1	4.051703	4.777935
+2.95591	1	4.057916	4.785505
+2.97194	1	4.064128	4.793151
+2.98798	1	4.070341	4.800875
+3.00401	1	4.076553	4.808677
+3.02004	1	4.082766	4.816556
+3.03607	1	4.088978	4.824513
+3.0521	1	4.09519	4.832548
+3.06814	1	4.101403	4.840661
+3.08417	1	4.107615	4.848854
+3.1002	1	4.113828	4.857125
+3.11623	1	4.12004	4.865475
+3.13226	1	4.126253	4.873905
+3.1483	1	4.132465	4.882415
+3.16433	1	4.138677	4.891005
+3.18036	1	4.14489	4.899675
+3.19639	1	4.151102	4.908425
+3.21242	1	4.157315	4.917256
+3.22846	1	4.163527	4.926168
+3.24449	1	4.169739	4.935162
+3.26052	1	4.175952	4.944237
+3.27655	1	4.182164	4.953393
+3.29259	1	4.188377	4.962632
+3.30862	1	4.194589	4.971953
+3.32465	1	4.200802	4.981356
+3.34068	1	4.207014	4.990842
+3.35671	1	4.213226	5.000411
+3.37275	1	4.219439	5.010064
+3.38878	1	4.225651	5.0198
+3.40481	1	4.231864	5.02962
+3.42084	1	4.238076	5.039523
+3.43687	1	4.244289	5.049511
+3.45291	1	4.250501	5.059584
+3.46894	1	4.256713	5.069741
+3.48497	1	4.262926	5.079983
+3.501	1	4.269138	5.090311
+3.51703	1	4.275351	5.100724
+3.53307	1	4.281563	5.111223
+3.5491	1	4.287776	5.121808
+3.56513	1	4.293988	5.13248
+3.58116	1	4.3002	5.143237
+3.59719	1	4.306413	5.154082
+3.61323	1	4.312625	5.165014
+3.62926	1	4.318838	5.176033
+3.64529	1	4.32505	5.187139
+3.66132	1	4.331263	5.198334
+3.67735	1	4.337475	5.209616
+3.69339	1	4.343687	5.220987
+3.70942	1	4.3499	5.232447
+3.72545	1	4.356112	5.243995
+3.74148	1	4.362325	5.255632
+3.75752	1	4.368537	5.267359
+3.77355	1	4.374749	5.279175
+3.78958	1	4.380962	5.291081
+3.80561	1	4.387174	5.303077
+3.82164	1	4.393387	5.315163
+3.83768	1	4.399599	5.32734
+3.85371	1	4.405812	5.339608
+3.86974	1	4.412024	5.351967
+3.88577	1	4.418236	5.364418
+3.9018	1	4.424449	5.37696
+3.91784	1	4.430661	5.389594
+3.93387	1	4.436874	5.402319
+3.9499	1	4.443086	5.415138
+3.96593	1	4.449299	5.428049
+3.98196	1	4.455511	5.441052
+3.998	1	4.461723	5.454149
+4.01403	1	4.467936	5.46734
+4.03006	1	4.474148	5.480624
+4.04609	1	4.480361	5.494001
+4.06212	1	4.486573	5.507473
+4.07816	1	4.492786	5.52104
+4.09419	1	4.498998	5.5347
+4.11022	1	4.50521	5.548456
+4.12625	1	4.511423	5.562307
+4.14228	1	4.517635	5.576254
+4.15832	1	4.523848	5.590296
+4.17435	1	4.53006	5.604434
+4.19038	1	4.536273	5.618668
+4.20641	1	4.542485	5.632998
+4.22244	1	4.548697	5.647425
+4.23848	1	4.55491	5.661949
+4.25451	1	4.561122	5.676571
+4.27054	1	4.567335	5.691289
+4.28657	1	4.573547	5.706106
+4.30261	1	4.57976	5.72102
+4.31864	1	4.585972	5.736032
+4.33467	1	4.592184	5.751143
+4.3507	1	4.598397	5.766353
+4.36673	1	4.604609	5.781661
+4.38277	1	4.610822	5.797069
+4.3988	1	4.617034	5.812576
+4.41483	1	4.623246	5.828183
+4.43086	1	4.629459	5.84389
+4.44689	1	4.635671	5.859696
+4.46293	1	4.641884	5.875604
+4.47896	1	4.648096	5.891612
+4.49499	1	4.654309	5.907721
+4.51102	1	4.660521	5.923931
+4.52705	1	4.666733	5.940243
+4.54309	1	4.672946	5.956657
+4.55912	1	4.679158	5.973172
+4.57515	1	4.685371	5.98979
+4.59118	1	4.691583	6.00651
+4.60721	1	4.697796	6.023333
+4.62325	1	4.704008	6.040258
+4.63928	1	4.71022	6.057287
+4.65531	1	4.716433	6.07442
+4.67134	1	4.722645	6.091656
+4.68737	1	4.728858	6.108997
+4.70341	1	4.73507	6.126441
+4.71944	1	4.741283	6.14399
+4.73547	1	4.747495	6.161644
+4.7515	1	4.753707	6.179403
+4.76754	1	4.75992	6.197267
+4.78357	1	4.766132	6.215236
+4.7996	1	4.772345	6.233311
+4.81563	1	4.778557	6.251493
+4.83166	1	4.78477	6.26978
+4.8477	1	4.790982	6.288174
+4.86373	1	4.797194	6.306675
+4.87976	1	4.803407	6.325283
+4.89579	1	4.809619	6.343998
+4.91182	1	4.815832	6.362821
+4.92786	1	4.822044	6.381751
+4.94389	1	4.828257	6.40079
+4.95992	1	4.834469	6.419937
+4.97595	1	4.840681	6.439192
+4.99198	1	4.846894	6.458556
+5.00802	1	4.853106	6.478029
+5.02405	1	4.859319	6.497612
+5.04008	1	4.865531	6.517304
+5.05611	1	4.871743	6.537106
+5.07214	1	4.877956	6.557017
+5.08818	1	4.884168	6.57704
+5.10421	1	4.890381	6.597172
+5.12024	1	4.896593	6.617416
+5.13627	1	4.902806	6.637771
+5.1523	1	4.909018	6.658236
+5.16834	1	4.91523	6.678814
+5.18437	1	4.921443	6.699503
+5.2004	1	4.927655	6.720305
+5.21643	1	4.933868	6.741219
+5.23246	1	4.94008	6.762245
+5.2485	1	4.946293	6.783384
+5.26453	1	4.952505	6.804636
+5.28056	1	4.958717	6.826002
+5.29659	1	4.96493	6.847481
+5.31263	1	4.971142	6.869074
+5.32866	1	4.977355	6.890781
+5.34469	1	4.983567	6.912603
+5.36072	1	4.98978	6.934539
+5.37675	1	4.995992	6.95659
+5.39279	1	5.002204	6.978756
+5.40882	1	5.008417	7.001038
+5.42485	1	5.014629	7.023435
+5.44088	1	5.020842	7.045948
+5.45691	1	5.027054	7.068577
+5.47295	1	5.033267	7.091322
+5.48898	1	5.039479	7.114184
+5.50501	1	5.045691	7.137163
+5.52104	1	5.051904	7.160259
+5.53707	1.031514	5.058116	7.183473
+5.55311	1.085514	5.064329	7.206804
+5.56914	1.138748	5.070541	7.230253
+5.58517	1.191223	5.076754	7.25382
+5.6012	1.242943	5.082966	7.277505
+5.61723	1.293914	5.089178	7.30131
+5.63327	1.344141	5.095391	7.325233
+5.6493	1.39363	5.101603	7.349275
+5.66533	1.442385	5.107816	7.373437
+5.68136	1.490412	5.114028	7.397718
+5.69739	1.537715	5.12024	7.422119
+5.71343	1.584302	5.126453	7.446641
+5.72946	1.630175	5.132665	7.471283
+5.74549	1.675342	5.138878	7.496045
+5.76152	1.719806	5.14509	7.520928
+5.77756	1.763574	5.151303	7.545933
+5.79359	1.80665	5.157515	7.571059
+5.80962	1.84904	5.163727	7.596307
+5.82565	1.890749	5.16994	7.621676
+5.84168	1.931782	5.176152	7.647168
+5.85772	1.972145	5.182365	7.672783
+5.87375	2.011843	5.188577	7.69852
+5.88978	2.05088	5.19479	7.72438
+5.90581	2.089263	5.201002	7.750363
+5.92184	2.126997	5.207214	7.776469
+5.93788	2.164086	5.213427	7.8027
+5.95391	2.200536	5.219639	7.829054
+5.96994	2.236352	5.225852	7.855532
+5.98597	2.27154	5.232064	7.882135
+6.002	2.306105	5.238277	7.908863
+6.01804	2.340051	5.244489	7.935715
+6.03407	2.373385	5.250701	7.962693
+6.0501	2.406112	5.256914	7.989797
+6.06613	2.438236	5.263126	8.017026
+6.08216	2.469763	5.269339	8.044381
+6.0982	2.500698	5.275551	8.071862
+6.11423	2.531047	5.281764	8.09947
+6.13026	2.560815	5.287976	8.127204
+6.14629	2.590006	5.294188	8.155065
+6.16232	2.618627	5.300401	8.183054
+6.17836	2.646682	5.306613	8.21117
+6.19439	2.674177	5.312826	8.239414
+6.21042	2.701117	5.319038	8.267786
+6.22645	2.727508	5.325251	8.296286
+6.24248	2.753353	5.331463	8.324915
+6.25852	2.77866	5.337675	8.353673
+6.27455	2.803432	5.343888	8.382559
+6.29058	2.827676	5.3501	8.411575
+6.30661	2.851396	5.356313	8.44072
+6.32265	2.874598	5.362525	8.469995
+6.33868	2.897287	5.368737	8.4994
+6.35471	2.919468	5.37495	8.528936
+6.37074	2.941146	5.381162	8.558602
+6.38677	2.962327	5.387375	8.588398
+6.40281	2.983016	5.393587	8.618326
+6.41884	3.003219	5.3998	8.648385
+6.43487	3.022939	5.406012	8.678575
+6.4509	3.042184	5.412224	8.708898
+6.46693	3.060957	5.418437	8.739352
+6.48297	3.079265	5.424649	8.769939
+6.499	3.097112	5.430862	8.800658
+6.51503	3.114504	5.437074	8.83151
+6.53106	3.131446	5.443287	8.862495
+6.54709	3.147943	5.449499	8.893614
+6.56313	3.164	5.455711	8.924865
+6.57916	3.179623	5.461924	8.956251
+6.59519	3.194817	5.468136	8.987771
+6.61122	3.209587	5.474349	9
+6.62725	3.223939	5.480561	9
+6.64329	3.237877	5.486774	9
+6.65932	3.251407	5.492986	9
+6.67535	3.264535	5.499198	9
+6.69138	3.277265	5.505411	9
+6.70741	3.289602	5.511623	9
+6.72345	3.301553	5.517836	9
+6.73948	3.313121	5.524048	9
+6.75551	3.324313	5.530261	9
+6.77154	3.335134	5.536473	9
+6.78758	3.345589	5.542685	9
+6.80361	3.355683	5.548898	9
+6.81964	3.365421	5.55511	9
+6.83567	3.374809	5.561323	9
+6.8517	3.383851	5.567535	9
+6.86774	3.392554	5.573747	9
+6.88377	3.400923	5.57996	9
+6.8998	3.408962	5.586172	9
+6.91583	3.416677	5.592385	9
+6.93186	3.424073	5.598597	9
+6.9479	3.431155	5.60481	9
+6.96393	3.437929	5.611022	9
+6.97996	3.4444	5.617234	9
+6.99599	3.450574	5.623447	9
+7.01202	3.456454	5.629659	9
+7.02806	3.462047	5.635872	9
+7.04409	3.467359	5.642084	9
+7.06012	3.472393	5.648297	9
+7.07615	3.477155	5.654509	9
+7.09218	3.481652	5.660721	9
+7.10822	3.485887	5.666934	9
+7.12425	3.489866	5.673146	9
+7.14028	3.493595	5.679359	9
+7.15631	3.497078	5.685571	9
+7.17234	3.500321	5.691784	9
+7.18838	3.50333	5.697996	9
+7.20441	3.506108	5.704208	9
+7.22044	3.508662	5.710421	9
+7.23647	3.510998	5.716633	9
+7.25251	3.513119	5.722846	9
+7.26854	3.515032	5.729058	9
+7.28457	3.516741	5.735271	9
+7.3006	3.518252	5.741483	9
+7.31663	3.51957	5.747695	9
+7.33267	3.520701	5.753908	9
+7.3487	3.521649	5.76012	9
+7.36473	3.52242	5.766333	9
+7.38076	3.523019	5.772545	9
+7.39679	3.523452	5.778758	9
+7.41283	3.523723	5.78497	9
+7.42886	3.523838	5.791182	9
+7.44489	3.523802	5.797395	9
+7.46092	3.52362	5.803607	9
+7.47695	3.523298	5.80982	9
+7.49299	3.522841	5.816032	9
+7.50902	3.522254	5.822244	9
+7.52505	3.521543	5.828457	9
+7.54108	3.520711	5.834669	9
+7.55711	3.519766	5.840882	9
+7.57315	3.518712	5.847094	9
+7.58918	3.517554	5.853307	9
+7.60521	3.516298	5.859519	9
+7.62124	3.514948	5.865731	9
+7.63727	3.513511	5.871944	9
+7.65331	3.511991	5.878156	9
+7.66934	3.510393	5.884369	9
+7.68537	3.508724	5.890581	9
+7.7014	3.506987	5.896794	9
+7.71743	3.505189	5.903006	9
+7.73347	3.503334	5.909218	9
+7.7495	3.501428	5.915431	9
+7.76553	3.499477	5.921643	9
+7.78156	3.497484	5.927856	9
+7.7976	3.495456	5.934068	9
+7.81363	3.493398	5.940281	9
+7.82966	3.491315	5.946493	9
+7.84569	3.489212	5.952705	9
+7.86172	3.487095	5.958918	9
+7.87776	3.484969	5.96513	9
+7.89379	3.482838	5.971343	9
+7.90982	3.480709	5.977555	9
+7.92585	3.478587	5.983768	9
+7.94188	3.476476	5.98998	9
+7.95792	3.474382	5.996192	9
+7.97395	3.472311	6.002405	9
+7.98998	3.470267	6.008617	9
+8.00601	3.468256	6.01483	9
+8.02204	3.466283	6.021042	9
+8.03808	3.464353	6.027255	9
+8.05411	3.462472	6.033467	9
+8.07014	3.460645	6.039679	9
+8.08617	3.458876	6.045892	9
+8.1022	3.457172	6.052104	9
+8.11824	3.455538	6.058317	9
+8.13427	3.453978	6.064529	9
+8.1503	3.452498	6.070741	9
+8.16633	3.451104	6.076954	9
+8.18236	3.4498	6.083166	9
+8.1984	3.448591	6.089379	9
+8.21443	3.447484	6.095591	9
+8.23046	3.446483	6.101804	9
+8.24649	3.445594	6.108016	9
+8.26253	3.444821	6.114228	9
+8.27856	3.444171	6.120441	9
+8.29459	3.443647	6.126653	9
+8.31062	3.443256	6.132866	9
+8.32665	3.443003	6.139078	9
+8.34269	3.442893	6.145291	9
+8.35872	3.442931	6.151503	9
+8.37475	3.443123	6.157715	9
+8.39078	3.443473	6.163928	9
+8.40681	3.443988	6.17014	9
+8.42285	3.444671	6.176353	9
+8.43888	3.445529	6.182565	9
+8.45491	3.446567	6.188778	9
+8.47094	3.44779	6.19499	9
+8.48697	3.449203	6.201202	9
+8.50301	3.450812	6.207415	9
+8.51904	3.452621	6.213627	9
+8.53507	3.454636	6.21984	9
+8.5511	3.456863	6.226052	9
+8.56713	3.459306	6.232265	9
+8.58317	3.46197	6.238477	9
+8.5992	3.464862	6.244689	9
+8.61523	3.467986	6.250902	9
+8.63126	3.471347	6.257114	9
+8.64729	3.474952	6.263327	9
+8.66333	3.478804	6.269539	9
+8.67936	3.482909	6.275752	9
+8.69539	3.487273	6.281964	9
+8.71142	3.4919	6.288176	9
+8.72745	3.496797	6.294389	9
+8.74349	3.501967	6.300601	9
+8.75952	3.507417	6.306814	9
+8.77555	3.513152	6.313026	9
+8.79158	3.519177	6.319238	9
+8.80762	3.525497	6.325451	9
+8.82365	3.532117	6.331663	9
+8.83968	3.539044	6.337876	9
+8.85571	3.546281	6.344088	9
+8.87174	3.553834	6.350301	9
+8.88778	3.561709	6.356513	9
+8.90381	3.56991	6.362725	9
+8.91984	3.578443	6.368938	9
+8.93587	3.587314	6.37515	9
+8.9519	3.596527	6.381363	9
+8.96794	3.606088	6.387575	9
+8.98397	3.616001	6.393788	9
+9	3.626273	6.4	9`;
+
+    // --- 2. CONFIGURAÇÕES & MAPS ---
+    const MAP_IMP_SEV = { 1:5, 2:5, 3:4, 4:4, 5:3, 6:2, 7:2, 8:1, 9:1 };
+    const MAP_DES_PROB = { 1:1, 2:1, 3:2, 4:2, 5:3, 6:4, 7:5, 8:5, 9:5 };
+    
+    // Descrições
+    const MAP_SEV_DESC = {
+        1: "Lesão muito leve",
+        2: "Lesão leve",
+        3: "Lesão leve", // Atenção: Ajustar se necessário (Imp 5 -> Sev 3)
+        4: "Lesão moderada",
+        5: "Lesão crítica ou fatal"
+    };
+    const MAP_PROB_DESC = {
+        1: "Altamente improvável",
+        2: "Improvável",
+        3: "Possível",
+        4: "Provável",
+        5: "Muito provável"
+    };
+
+    const COLOR_EXCESSO = 'rgba(209, 213, 219, 0.5)'; 
+    const COLOR_ADEQUADO = 'rgba(187, 247, 208, 0.5)'; 
+    const COLOR_MELHORIA = 'rgba(253, 230, 138, 0.5)'; 
+    const COLOR_URGENTE  = 'rgba(254, 202, 202, 0.5)'; 
+    const COLORS_FQA = { 'Irrelevante': '#C5E0B5', 'Baixo': '#92D14F', 'Moderado': '#FEFF00', 'Alto': '#FFBF01', 'Crítico': '#FE0000' };
+
+    const getNivelRisco = (s, p) => {
+        const m = { "1,1": "Irrelevante", "1,2": "Baixo", "1,3": "Baixo", "1,4": "Moderado", "1,5": "Moderado", "2,1": "Baixo", "2,2": "Baixo", "2,3": "Moderado", "2,4": "Moderado", "2,5": "Alto", "3,1": "Baixo", "3,2": "Moderado", "3,3": "Moderado", "3,4": "Alto", "3,5": "Alto", "4,1": "Baixo", "4,2": "Moderado", "4,3": "Moderado", "4,4": "Alto", "4,5": "Crítico", "5,1": "Moderado", "5,2": "Moderado", "5,3": "Alto", "5,4": "Crítico", "5,5": "Crítico" };
+        return m[`${s},${p}`] || "Indefinido";
+    };
+
+    const processData = () => {
+        const lines = rawDataStr.trim().split('\n');
+        const dataSup = [], dataMid = [], dataInf = [];
+        lines.forEach(line => {
+            const parts = line.split(/\t|\s+/); if(parts.length < 4) return;
+            const x = parseFloat(parts[0]);
+            dataSup.push({x, y: parseFloat(parts[1])}); dataMid.push({x, y: parseFloat(parts[2])}); dataInf.push({x, y: parseFloat(parts[3])});
+        });
+        return { dataSup, dataMid, dataInf };
+    };
+    const { dataSup, dataMid, dataInf } = processData();
+
+    // --- PLUGINS ---
+
+    const fqaBackgroundPlugin = {
+        id: 'fqaBackground',
+        beforeDraw: (chart) => {
+            if (chart.config.options.plugins.fqaBackground === false) return;
+            const { ctx, scales: { x, y }, chartArea: { left, bottom, top } } = chart;
+            
+            for (let s = 1; s <= 5; s++) {
+                for (let p = 1; p <= 5; p++) {
+                    const color = COLORS_FQA[getNivelRisco(s, p)];
+                    const xS = x.getPixelForValue(s - 0.5), xE = x.getPixelForValue(s + 0.5);
+                    const yS = y.getPixelForValue(p - 0.5), yE = y.getPixelForValue(p + 0.5);
+                    ctx.fillStyle = color; ctx.fillRect(xS, yS, xE - xS, yE - yS);
+                    ctx.strokeStyle = "white"; ctx.lineWidth = 1; ctx.strokeRect(xS, yS, xE - xS, yE - yS);
+                }
+            }
+
+            ctx.save();
+            ctx.fillStyle = '#374151'; 
+            ctx.font = 'bold 18px Inter, sans-serif'; 
+            ctx.textAlign = 'center'; 
+            ctx.textBaseline = 'top';
+
+            // Eixo X (Offset ajustado para 10px para ficar mais próximo)
+            for (let i = 1; i <= 5; i++) {
+                const xVal = x.getPixelForValue(i);
+                ctx.fillText(i, xVal, bottom + 10); 
+            }
+
+            // Eixo Y
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            for (let i = 1; i <= 5; i++) {
+                const yVal = y.getPixelForValue(i);
+                ctx.fillText(i, left - 10, yVal); 
+            }
+            ctx.restore();
+        }
+    };
+
+    const customPointsPlugin = {
+        id: 'customPoints',
+        afterDatasetsDraw: (chart) => {
+            const { ctx, scales: { x, y } } = chart;
+            const meta = chart.getDatasetMeta(chart.data.datasets.length - 1);
+            if (meta.hidden || !chart.data.customGroupedData) return;
+            const groups = chart.data.customGroupedData;
+            const isSlack = chart.canvas.id === 'slackChart';
+            
+            ctx.save();
+            ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.font = 'bold 12px Arial';
+            
+            groups.forEach(g => {
+                const xPos = x.getPixelForValue(g.x), yPos = y.getPixelForValue(g.y);
+                const xOff = isSlack ? 0 : -15; 
+                let pointColor = 'black';
+                if (!isSlack) {
+                    const level = getNivelRisco(g.x, g.y);
+                    if (level === 'Crítico') pointColor = 'white';
+                }
+                ctx.fillStyle = pointColor; ctx.strokeStyle = pointColor;
+                
+                const size = 6; ctx.lineWidth = 3; 
+                ctx.beginPath();
+                ctx.moveTo(xPos + xOff - size, yPos - size); ctx.lineTo(xPos + xOff + size, yPos + size);
+                ctx.moveTo(xPos + xOff + size, yPos - size); ctx.lineTo(xPos + xOff - size, yPos + size);
+                ctx.stroke();
+
+                if (isSlack) {
+                    const text = g.ids.join('; ');
+                    if (g.x <= 1.2) { ctx.textAlign = 'right'; ctx.fillText(text, xPos - 10, yPos); } 
+                    else { ctx.textAlign = 'left'; ctx.fillText(text, xPos + 10, yPos); }
+                } else {
+                    ctx.textBaseline = 'top';
+                    let textY = yPos - ((g.ids.length * 12) / 2);
+                    g.ids.forEach((id, i) => ctx.fillText(id, xPos + xOff + 12, textY + (i * 12)));
+                }
+            });
+            ctx.restore();
+        }
+    };
+
+    const slackOverlayPlugin = {
+        id: 'slackOverlay',
+        afterDraw: (chart) => {
+            if (chart.config.options.plugins.slackOverlay === false) return;
+            const { ctx, scales: { x, y }, chartArea: { left, right, top, bottom } } = chart;
+            const drawText = (text, xVal, yVal, color='#374151', rot=0) => {
+                ctx.save(); ctx.translate(x.getPixelForValue(xVal), y.getPixelForValue(yVal));
+                ctx.rotate(rot * Math.PI / 180); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillStyle = color; ctx.font = 'bold 16px Inter, sans-serif'; ctx.fillText(text, 0, 0); ctx.restore();
+            };
+            drawText("Excesso?", 7.5, 1.5); drawText("Adequado", 5.5, 3.5);
+            drawText("Fronteira Inferior de Aceitabilidade", 6, 4.85, '#4b5563', -22); 
+            drawText("Melhoria", 7, 6.5); drawText("Ação Urgente", 3, 8);
+
+            ctx.save(); ctx.font = 'bold 12px Inter, sans-serif'; ctx.fillStyle = '#374151';
+            const yAxisPos = bottom + 35;
+            ctx.textAlign = 'center'; ctx.fillText("IMPORTÂNCIA", (left + right) / 2, yAxisPos);
+            ctx.textAlign = 'left'; ctx.fillText("BAIXA   <----------------------------------", left, yAxisPos);
+            ctx.textAlign = 'right'; ctx.fillText("---------------------------------->   ALTA", right, yAxisPos);
+            const xAxisPos = left - 35;
+            ctx.translate(xAxisPos, (top + bottom) / 2); ctx.rotate(-Math.PI / 2);
+            ctx.textAlign = 'center'; ctx.fillText("DESEMPENHO", 0, 0);
+            ctx.textAlign = 'left'; ctx.fillText("RUIM   <----------------------------------", -((bottom - top) / 2), 0);
+            ctx.textAlign = 'right'; ctx.fillText("---------------------------------->   BOM", ((bottom - top) / 2), 0);
+            ctx.restore();
+        }
+    };
+    
+    const slackBgPlugin = {
+        id: 'slackBg',
+        beforeDraw: (chart) => {
+            if (chart.canvas.id !== 'slackChart') return;
+            const { ctx, chartArea: { left, top, width, height } } = chart;
+            ctx.save(); ctx.fillStyle = COLOR_EXCESSO; ctx.fillRect(left, top, width, height); ctx.restore();
+        }
+    };
+
+    Chart.register(fqaBackgroundPlugin, customPointsPlugin, slackOverlayPlugin, slackBgPlugin);
+
+    createApp({
+        setup() {
+            const riscos = ref([]);
+            const form = ref({ id: 1, rubrica: '', imp: 5, des: 5 });
+            const modoEdicao = ref(false);
+            let slackChartInst = null, fqaChartInst = null;
+
+            const calcularRisco = (r) => {
+                const findY = (arr, xVal) => { const p = arr.find(p => Math.abs(p.x - xVal) < 0.05); return p ? p.y : 9; };
+                const yInf = findY(dataInf, r.imp); const ySup = findY(dataSup, r.imp); const yMid = findY(dataMid, r.imp);
+                let diag = "";
+                if (r.des > yInf) diag = "Ação Urgente"; else if (r.des > yMid) diag = "Melhoria"; else if (r.des > ySup) diag = "Adequado"; else diag = "Excesso?";
+                const sev = MAP_IMP_SEV[r.imp], prob = MAP_DES_PROB[r.des];
+                return { ...r, diagSlack: diag, sev, prob, descSev: MAP_SEV_DESC[sev], descProb: MAP_PROB_DESC[prob], nivelRisco: getNivelRisco(sev, prob) };
+            };
+            const riscosOrdenados = computed(() => [...riscos.value].map(calcularRisco).sort((a,b) => a.id - b.id));
+
+            const agruparRiscos = (dados, tipo) => {
+                const groups = {};
+                dados.forEach(r => {
+                    const key = tipo === 'slack' ? `${r.imp}-${r.des}` : `${r.sev}-${r.prob}`;
+                    if(!groups[key]) groups[key] = { x: tipo==='slack'?r.imp:r.sev, y: tipo==='slack'?r.des:r.prob, ids: [] };
+                    groups[key].ids.push(r.id);
+                });
+                return Object.values(groups);
+            };
+
+            const adicionarRisco = () => {
+                if(!modoEdicao.value && riscos.value.some(r => r.id === form.value.id)) return alert("ID duplicado");
+                if(modoEdicao.value) { const idx = riscos.value.findIndex(r => r.id === form.value.id); if(idx !== -1) riscos.value[idx] = { ...form.value }; modoEdicao.value = false; }
+                else { riscos.value.push({ ...form.value }); form.value.id++; }
+                form.value.rubrica = ''; form.value.imp = 5; form.value.des = 5; atualizarGraficos();
+            };
+            const editarRisco = (r) => { form.value = { ...r }; modoEdicao.value = true; };
+            const cancelarEdicao = () => { modoEdicao.value = false; form.value.id = riscos.value.length > 0 ? Math.max(...riscos.value.map(r=>r.id))+1 : 1; form.value.rubrica=''; };
+            const excluirRisco = (id) => { riscos.value = riscos.value.filter(r => r.id !== id); atualizarGraficos(); };
+            const carregarExemplos = () => {
+                riscos.value = [ { id: 1, rubrica: 'As zonas de trabalho', imp: 5, des: 4 }, { id: 2, rubrica: 'A organização técnica', imp: 1, des: 3 }, { id: 3, rubrica: 'Os locais de trabalho', imp: 3, des: 6 }, { id: 4, rubrica: 'Os riscos de acidentes', imp: 2, des: 5 }, { id: 5, rubrica: 'Os comandos e sinais', imp: 5, des: 7 }, { id: 9, rubrica: 'A carga mental', imp: 1, des: 7 }, { id: 17, rubrica: 'Outro risco', imp: 2, des: 7 } ];
+                atualizarGraficos();
+            };
+            const exportarExcel = () => {
+                const wb = XLSX.utils.book_new(); 
+                const data = riscosOrdenados.value.map(r => ({ "ID": r.id, "Rubrica": r.rubrica, "Imp (Slack)": r.imp, "Des (Slack)": r.des, "Diag (Slack)": r.diagSlack, "Sev (FQA)": r.sev, "Desc Sev": r.descSev, "Prob (FQA)": r.prob, "Desc Prob": r.descProb, "Nível Risco": r.nivelRisco }));
+                XLSX.utils.book_append_sheet(wb, ws, "Riscos"); XLSX.writeFile(wb, "Gestao_Riscos.xlsx");
+            };
+
+            const badgeStyleFQA = (nivel) => {
+                const color = COLORS_FQA[nivel] || '#fff';
+                const textColor = nivel === 'Crítico' ? 'white' : 'black';
+                return { backgroundColor: color, color: textColor };
+            };
+
+            const initCharts = () => {
+                const ctxSlack = document.getElementById('slackChart').getContext('2d');
+                slackChartInst = new Chart(ctxSlack, {
+                    type: 'scatter',
+                    data: {
+                        datasets: [
+                            { label: 'Layer_Green', data: dataSup, type: 'line', borderColor: 'black', borderWidth: 1.5, pointRadius: 0, tension: 0.4, cubicInterpolationMode: 'monotone', fill: 'end', backgroundColor: COLOR_ADEQUADO },
+                            { label: 'Layer_Yellow', data: dataMid, type: 'line', borderColor: 'black', borderWidth: 1.5, pointRadius: 0, borderDash: [5,5], tension: 0.4, cubicInterpolationMode: 'monotone', fill: 'end', backgroundColor: COLOR_MELHORIA },
+                            { label: 'Layer_Red', data: dataInf, type: 'line', borderColor: 'black', borderWidth: 1.5, pointRadius: 0, tension: 0.4, cubicInterpolationMode: 'monotone', fill: 'end', backgroundColor: COLOR_URGENTE },
+                            { label: 'Riscos', data: [], pointRadius: 0 } 
+                        ]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: true, aspectRatio: 1,
+                        layout: { padding: { bottom: 40, left: 40, top: 10, right: 10 } },
+                        plugins: { legend: { display: false }, fqaBackground: false, slackOverlay: true, tooltip: { enabled: false } },
+                        scales: {
+                            x: { min: 1, max: 9, reverse: true, grid: { color: 'black', lineWidth: 1 } },
+                            y: { min: 1, max: 9, reverse: true, grid: { color: 'black', lineWidth: 1 } }
+                        }
+                    }
+                });
+
+                const ctxFQA = document.getElementById('fqaChart').getContext('2d');
+                fqaChartInst = new Chart(ctxFQA, {
+                    type: 'scatter',
+                    data: { datasets: [{ data: [], pointRadius: 0 }] },
+                    options: {
+                        responsive: true, maintainAspectRatio: true, aspectRatio: 1,
+                        layout: { padding: { bottom: 50, left: 50, top: 10, right: 10 } }, 
+                        plugins: { legend: { display: false }, slackOverlay: false, tooltip: { enabled: false } },
+                        scales: {
+                            x: { 
+                                min: 0.5, max: 5.5, grid: {display:false}, ticks: { display: false },
+                                // PADDING ADICIONADO AQUI
+                                title: {display:true, text:'SEVERIDADE', font:{weight:'bold', size:18}, padding: { top: 25 }} 
+                            },
+                            y: { 
+                                min: 0.5, max: 5.5, grid: {display:false}, ticks: { display: false },
+                                // PADDING ADICIONADO AQUI
+                                title: {display:true, text:'PROBABILIDADE', font:{weight:'bold', size:18}, padding: { bottom: 25 }} 
+                            }
+                        }
+                    }
+                });
+            };
+
+            const atualizarGraficos = () => {
+                if(!slackChartInst) return;
+                const dados = riscosOrdenados.value;
+                const gSlack = agruparRiscos(dados, 'slack'); slackChartInst.data.customGroupedData = gSlack; slackChartInst.data.datasets[3].data = gSlack.map(g => ({x: g.x, y: g.y})); slackChartInst.update();
+                const gFQA = agruparRiscos(dados, 'fqa'); fqaChartInst.data.customGroupedData = gFQA; fqaChartInst.data.datasets[0].data = gFQA.map(g => ({x: g.x, y: g.y})); fqaChartInst.update();
+            };
+
+            const badgeClassSlack = (s) => s.includes('Urgente')?'bg-red-200 text-red-900':s.includes('Melhoria')?'bg-yellow-100 text-yellow-800':s.includes('Adequado')?'bg-green-100 text-green-900':'bg-gray-200 text-gray-800';
+
+            onMounted(initCharts);
+            return { riscos, form, modoEdicao, riscosOrdenados, adicionarRisco, editarRisco, cancelarEdicao, excluirRisco, carregarExemplos, exportarExcel, badgeStyleFQA };
+        }
+    }).mount('#app');
+</script>
+</body>
+</html>
