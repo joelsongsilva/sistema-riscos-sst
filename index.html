@@ -5,14 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Gestão de Riscos (Slack + FQA)</title>
     
-    <!-- PWA Meta Tags -->
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#0f172a">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Riscos SST">
-    <link rel="apple-touch-icon" href="icon-192.png">
-    
     <!-- Bibliotecas -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
@@ -35,6 +27,63 @@
         td { font-size: 0.8rem; padding: 6px 8px; border: 1px solid #e2e8f0; text-align: center; }
         
         canvas { touch-action: none; }
+
+        /* ====== RESPONSIVIDADE MOBILE ====== */
+        @media (max-width: 768px) {
+            /* Header compacto */
+            .mobile-header-title { font-size: 0.875rem !important; line-height: 1.2; }
+            .mobile-header-subtitle { font-size: 0.65rem !important; }
+            .mobile-btn { padding: 0.4rem 0.6rem !important; font-size: 0.7rem !important; }
+            .mobile-hide { display: none !important; }
+            
+            /* Container principal em coluna */
+            .main-content { flex-direction: column !important; }
+            
+            /* Gráficos: largura total */
+            .charts-column { 
+                width: 100% !important; 
+                border-right: none !important;
+                max-height: none !important;
+                padding: 0.5rem !important;
+                gap: 0.75rem !important;
+            }
+            
+            .chart-card { 
+                margin-bottom: 0.5rem !important;
+                padding: 0.5rem !important;
+            }
+            
+            .chart-title { font-size: 0.7rem !important; padding: 0.25rem 0.5rem !important; margin-bottom: 0.5rem !important; }
+            
+            .chart-box-container {
+                max-width: 100% !important;
+                height: 260px !important;
+                aspect-ratio: auto !important;
+            }
+            
+            /* Tabela: largura total */
+            .table-column { 
+                width: 100% !important;
+            }
+            
+            /* Formulário compacto */
+            .form-section { padding: 0.75rem !important; }
+            .form-title { font-size: 0.7rem !important; margin-bottom: 0.5rem !important; }
+            .form-grid { gap: 0.5rem !important; }
+            .form-grid-cols { grid-template-columns: 1fr !important; }
+            .form-input { font-size: 0.75rem !important; padding: 0.4rem !important; }
+            .form-label { font-size: 0.6rem !important; }
+            .slider-container { padding: 0.4rem !important; }
+            .slider-value { font-size: 0.65rem !important; padding: 0.15rem 0.4rem !important; }
+            .form-btn { padding: 0.5rem 0.75rem !important; font-size: 0.75rem !important; }
+            
+            /* Tabela responsiva */
+            .table-wrapper { overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; }
+            .data-table { min-width: 650px !important; font-size: 0.7rem !important; }
+            .data-table th { padding: 4px 2px !important; font-size: 0.6rem !important; }
+            .data-table td { padding: 3px 2px !important; font-size: 0.68rem !important; }
+            .action-btn { padding: 2px 4px !important; font-size: 0.6rem !important; }
+        }
     </style>
 </head>
 <body class="h-screen overflow-hidden flex flex-col">
@@ -44,41 +93,39 @@
         <!-- Header -->
         <header class="bg-slate-900 text-white p-4 shadow-md flex justify-between items-center z-10 shrink-0" data-html2canvas-ignore="true">
             <div>
-                <h1 class="text-xl font-bold tracking-tight">MATRIZ DE GESTÃO DE RISCOS DE SEGURANÇA DO TRABALHO</h1>
-                <p class="text-xs text-slate-400">Metodologia Híbrida: Slack (Importância x Desempenho) & FQA (Severidade x Probabilidade) - versão 1 - 2025</p>
+                <h1 class="mobile-header-title text-xl font-bold tracking-tight">MATRIZ DE GESTÃO DE RISCOS DE SEGURANÇA DO TRABALHO</h1>
+                <p class="mobile-header-subtitle text-xs text-slate-400">Metodologia Híbrida: Slack (Importância x Desempenho) & FQA (Severidade x Probabilidade) - versão 1 - 2025</p>
             </div>
             <div class="flex gap-2">
-                <button @click="carregarExemplos" class="px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded text-sm transition border border-slate-600">
+                <button @click="carregarExemplos" class="mobile-btn mobile-hide px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded text-sm transition border border-slate-600">
                     Carregar Exemplos
                 </button>
-                <button @click="exportarExcel" class="px-4 py-2 bg-green-700 hover:bg-green-600 rounded font-bold text-sm flex items-center gap-2 transition shadow">
-                    Exportar Excel
+                <button @click="exportarExcel" class="mobile-btn px-4 py-2 bg-green-700 hover:bg-green-600 rounded font-bold text-sm flex items-center gap-2 transition shadow">
+                    Excel
                 </button>
-                <button @click="exportarPDF" class="px-4 py-2 bg-red-700 hover:bg-red-600 rounded font-bold text-sm flex items-center gap-2 transition shadow">
-                    Exportar PDF
+                <button @click="exportarPDF" class="mobile-btn px-4 py-2 bg-red-700 hover:bg-red-600 rounded font-bold text-sm flex items-center gap-2 transition shadow">
+                    PDF
                 </button>
             </div>
         </header>
 
         <!-- Main Content -->
-        <div id="print-area" class="flex-1 flex overflow-hidden pdf-content">
+        <div id="print-area" class="main-content flex-1 flex overflow-hidden pdf-content">
             
             <!-- Coluna Esquerda: Gráficos -->
-            <div class="w-2/5 p-4 flex flex-col gap-6 overflow-y-auto bg-gray-50 border-r border-gray-300">
+            <div class="charts-column w-2/5 p-4 flex flex-col gap-6 overflow-y-auto bg-gray-50 border-r border-gray-300">
                 
                 <!-- Gráfico SLACK -->
-                <div class="bg-white p-2 rounded-lg shadow-sm border border-gray-200 w-full">
-                    <!-- Título em Negrito Extra (font-extrabold) e um pouco maior (text-base) -->
-                    <h3 class="font-extrabold text-gray-800 text-base mb-2 border-b pb-1 px-2">MATRIZ IMPORTÂNCIA X DESEMPENHO</h3>
+                <div class="chart-card bg-white p-2 rounded-lg shadow-sm border border-gray-200 w-full">
+                    <h3 class="chart-title font-extrabold text-gray-800 text-base mb-2 border-b pb-1 px-2">MATRIZ IMPORTÂNCIA X DESEMPENHO</h3>
                     <div class="chart-box-container">
                         <canvas id="slackChart"></canvas>
                     </div>
                 </div>
 
                 <!-- Gráfico FQA -->
-                <div class="bg-white p-2 rounded-lg shadow-sm border border-gray-200 w-full mb-8">
-                    <!-- Título em Negrito Extra (font-extrabold) e um pouco maior (text-base) -->
-                    <h3 class="font-extrabold text-gray-800 text-base mb-2 border-b pb-1 px-2">MATRIZ DE RISCO (Severidade x Probabilidade)</h3>
+                <div class="chart-card bg-white p-2 rounded-lg shadow-sm border border-gray-200 w-full mb-8">
+                    <h3 class="chart-title font-extrabold text-gray-800 text-base mb-2 border-b pb-1 px-2">MATRIZ DE RISCO (Severidade x Probabilidade)</h3>
                     <div class="chart-box-container">
                         <canvas id="fqaChart"></canvas>
                     </div>
@@ -86,48 +133,48 @@
             </div>
 
             <!-- Coluna Direita: Inputs e Tabela -->
-            <div class="w-3/5 flex flex-col bg-white shadow-xl z-20">
+            <div class="table-column w-3/5 flex flex-col bg-white shadow-xl z-20">
                 
                 <!-- Formulário -->
-                <div class="p-4 bg-slate-50 border-b border-gray-200" data-html2canvas-ignore="true">
-                    <h2 class="text-sm font-bold text-slate-700 mb-3 uppercase tracking-wide">Adicionar / Editar Risco</h2>
-                    <form @submit.prevent="adicionarRisco" class="space-y-3">
-                        <div class="grid grid-cols-6 gap-3">
+                <div class="form-section p-4 bg-slate-50 border-b border-gray-200" data-html2canvas-ignore="true">
+                    <h2 class="form-title text-sm font-bold text-slate-700 mb-3 uppercase tracking-wide">Adicionar / Editar Risco</h2>
+                    <form @submit.prevent="adicionarRisco" class="form-grid space-y-3">
+                        <div class="form-grid-cols grid grid-cols-6 gap-3">
                             <div class="col-span-1">
-                                <label class="block text-[10px] font-bold text-gray-500 uppercase">ID</label>
-                                <input v-model.number="form.id" type="number" required class="w-full mt-1 p-1.5 border rounded border-gray-300 focus:border-blue-500 focus:outline-none text-sm" placeholder="1">
+                                <label class="form-label block text-[10px] font-bold text-gray-500 uppercase">ID</label>
+                                <input v-model.number="form.id" type="number" required class="form-input w-full mt-1 p-1.5 border rounded border-gray-300 focus:border-blue-500 focus:outline-none text-sm" placeholder="1">
                             </div>
                             <div class="col-span-5">
-                                <label class="block text-[10px] font-bold text-gray-500 uppercase">Rubrica de Segurança</label>
-                                <input v-model="form.rubrica" type="text" required class="w-full mt-1 p-1.5 border rounded border-gray-300 focus:border-blue-500 focus:outline-none text-sm" placeholder="Descrição do Risco">
+                                <label class="form-label block text-[10px] font-bold text-gray-500 uppercase">Rubrica de Segurança</label>
+                                <input v-model="form.rubrica" type="text" required class="form-input w-full mt-1 p-1.5 border rounded border-gray-300 focus:border-blue-500 focus:outline-none text-sm" placeholder="Descrição do Risco">
                             </div>
                         </div>
-                        <div class="grid grid-cols-2 gap-6">
-                            <div class="bg-white p-2 rounded border border-gray-200">
+                        <div class="form-grid-cols grid grid-cols-2 gap-6">
+                            <div class="slider-container bg-white p-2 rounded border border-gray-200">
                                 <div class="flex justify-between mb-1">
-                                    <label class="text-xs font-bold text-gray-700">Importância (1-9)</label>
-                                    <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 rounded">{{ form.imp }}</span>
+                                    <label class="form-label text-xs font-bold text-gray-700">Importância (1-9)</label>
+                                    <span class="slider-value text-xs font-bold text-blue-600 bg-blue-50 px-2 rounded">{{ form.imp }}</span>
                                 </div>
                                 <input type="range" v-model.number="form.imp" min="1" max="9" step="1" class="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer">
                             </div>
-                            <div class="bg-white p-2 rounded border border-gray-200">
+                            <div class="slider-container bg-white p-2 rounded border border-gray-200">
                                 <div class="flex justify-between mb-1">
-                                    <label class="text-xs font-bold text-gray-700">Desempenho (1-9)</label>
-                                    <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 rounded">{{ form.des }}</span>
+                                    <label class="form-label text-xs font-bold text-gray-700">Desempenho (1-9)</label>
+                                    <span class="slider-value text-xs font-bold text-blue-600 bg-blue-50 px-2 rounded">{{ form.des }}</span>
                                 </div>
                                 <input type="range" v-model.number="form.des" min="1" max="9" step="1" class="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer">
                             </div>
                         </div>
                         <div class="flex gap-2">
-                            <button type="submit" class="flex-1 bg-blue-700 hover:bg-blue-800 text-white font-bold py-1.5 px-4 rounded shadow text-sm">{{ modoEdicao ? 'Atualizar Dados' : 'Adicionar à Tabela' }}</button>
+                            <button type="submit" class="form-btn flex-1 bg-blue-700 hover:bg-blue-800 text-white font-bold py-1.5 px-4 rounded shadow text-sm">{{ modoEdicao ? 'Atualizar Dados' : 'Adicionar à Tabela' }}</button>
                             <button v-if="modoEdicao" @click="cancelarEdicao" type="button" class="mt-1 text-gray-500 text-xs underline">Cancelar</button>
                         </div>
                     </form>
                 </div>
 
                 <!-- Tabela de Dados -->
-                <div class="flex-1 overflow-auto p-0">
-                    <table class="w-full border-collapse">
+                <div class="table-wrapper flex-1 overflow-auto p-0">
+                    <table class="data-table w-full border-collapse">
                         <thead class="bg-gray-100 sticky top-0 z-10 shadow-sm">
                             <tr>
                                 <th class="w-10">ID</th>
@@ -159,8 +206,8 @@
                                 </td>
                                 <td data-html2canvas-ignore="true">
                                     <div class="flex justify-center gap-2">
-                                        <button @click="editarRisco(risco)" class="text-blue-600 hover:text-blue-800">✎</button>
-                                        <button @click="excluirRisco(risco.id)" class="text-red-600 hover:text-red-800">✕</button>
+                                        <button @click="editarRisco(risco)" class="action-btn text-blue-600 hover:text-blue-800">✎</button>
+                                        <button @click="excluirRisco(risco.id)" class="action-btn text-red-600 hover:text-red-800">✕</button>
                                     </div>
                                 </td>
                             </tr>
@@ -1031,19 +1078,6 @@
             return { riscos, form, modoEdicao, riscosOrdenados, adicionarRisco, editarRisco, cancelarEdicao, excluirRisco, carregarExemplos, exportarExcel, exportarPDF, badgeStyleFQA };
         }
     }).mount('#app');
-
-    // Registro do Service Worker para PWA
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/service-worker.js')
-                .then((registration) => {
-                    console.log('Service Worker registrado com sucesso:', registration.scope);
-                })
-                .catch((error) => {
-                    console.log('Falha ao registrar Service Worker:', error);
-                });
-        });
-    }
 </script>
 </body>
 </html>
