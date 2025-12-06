@@ -10,6 +10,7 @@
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
@@ -22,7 +23,6 @@
             position: relative;
         }
 
-        /* Estilização da Tabela */
         th { font-size: 0.75rem; text-transform: uppercase; background-color: #f1f5f9; color: #475569; padding: 8px; border: 1px solid #e2e8f0; }
         td { font-size: 0.8rem; padding: 6px 8px; border: 1px solid #e2e8f0; text-align: center; }
         
@@ -34,10 +34,10 @@
     <div id="app" class="flex flex-col h-full">
         
         <!-- Header -->
-        <header class="bg-slate-900 text-white p-4 shadow-md flex justify-between items-center z-10 shrink-0">
+        <header class="bg-slate-900 text-white p-4 shadow-md flex justify-between items-center z-10 shrink-0" data-html2canvas-ignore="true">
             <div>
-                <h1 class="text-xl font-bold tracking-tight">Engenharia de Segurança - Análise de Riscos</h1>
-                <p class="text-xs text-slate-400">Metodologia Híbrida: Slack (Importância x Desempenho) & FQA (Severidade x Probabilidade)</p>
+                <h1 class="text-xl font-bold tracking-tight">MATRIZ DE GESTÃO DE RISCOS DE SEGURANÇA DO TRABALHO</h1>
+                <p class="text-xs text-slate-400">Metodologia Híbrida: Slack (Importância x Desempenho) & FQA (Severidade x Probabilidade) - versão 1 - 2025</p>
             </div>
             <div class="flex gap-2">
                 <button @click="carregarExemplos" class="px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded text-sm transition border border-slate-600">
@@ -46,18 +46,22 @@
                 <button @click="exportarExcel" class="px-4 py-2 bg-green-700 hover:bg-green-600 rounded font-bold text-sm flex items-center gap-2 transition shadow">
                     Exportar Excel
                 </button>
+                <button @click="exportarPDF" class="px-4 py-2 bg-red-700 hover:bg-red-600 rounded font-bold text-sm flex items-center gap-2 transition shadow">
+                    Exportar PDF
+                </button>
             </div>
         </header>
 
         <!-- Main Content -->
-        <div class="flex-1 flex overflow-hidden">
+        <div id="print-area" class="flex-1 flex overflow-hidden pdf-content">
             
             <!-- Coluna Esquerda: Gráficos -->
             <div class="w-2/5 p-4 flex flex-col gap-6 overflow-y-auto bg-gray-50 border-r border-gray-300">
                 
                 <!-- Gráfico SLACK -->
                 <div class="bg-white p-2 rounded-lg shadow-sm border border-gray-200 w-full">
-                    <h3 class="font-bold text-gray-800 text-sm mb-2 border-b pb-1 px-2">MATRIZ IMPORTÂNCIA X DESEMPENHO</h3>
+                    <!-- Título em Negrito Extra (font-extrabold) e um pouco maior (text-base) -->
+                    <h3 class="font-extrabold text-gray-800 text-base mb-2 border-b pb-1 px-2">MATRIZ IMPORTÂNCIA X DESEMPENHO</h3>
                     <div class="chart-box-container">
                         <canvas id="slackChart"></canvas>
                     </div>
@@ -65,7 +69,8 @@
 
                 <!-- Gráfico FQA -->
                 <div class="bg-white p-2 rounded-lg shadow-sm border border-gray-200 w-full mb-8">
-                    <h3 class="font-bold text-gray-800 text-sm mb-2 border-b pb-1 px-2">MATRIZ DE RISCO (Severidade x Probabilidade)</h3>
+                    <!-- Título em Negrito Extra (font-extrabold) e um pouco maior (text-base) -->
+                    <h3 class="font-extrabold text-gray-800 text-base mb-2 border-b pb-1 px-2">MATRIZ DE RISCO (Severidade x Probabilidade)</h3>
                     <div class="chart-box-container">
                         <canvas id="fqaChart"></canvas>
                     </div>
@@ -76,7 +81,7 @@
             <div class="w-3/5 flex flex-col bg-white shadow-xl z-20">
                 
                 <!-- Formulário -->
-                <div class="p-4 bg-slate-50 border-b border-gray-200">
+                <div class="p-4 bg-slate-50 border-b border-gray-200" data-html2canvas-ignore="true">
                     <h2 class="text-sm font-bold text-slate-700 mb-3 uppercase tracking-wide">Adicionar / Editar Risco</h2>
                     <form @submit.prevent="adicionarRisco" class="space-y-3">
                         <div class="grid grid-cols-6 gap-3">
@@ -105,12 +110,14 @@
                                 <input type="range" v-model.number="form.des" min="1" max="9" step="1" class="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer">
                             </div>
                         </div>
-                        <button type="submit" class="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-1.5 px-4 rounded shadow text-sm">{{ modoEdicao ? 'Atualizar Dados' : 'Adicionar à Tabela' }}</button>
-                        <button v-if="modoEdicao" @click="cancelarEdicao" type="button" class="w-full mt-1 text-gray-500 text-xs underline">Cancelar</button>
+                        <div class="flex gap-2">
+                            <button type="submit" class="flex-1 bg-blue-700 hover:bg-blue-800 text-white font-bold py-1.5 px-4 rounded shadow text-sm">{{ modoEdicao ? 'Atualizar Dados' : 'Adicionar à Tabela' }}</button>
+                            <button v-if="modoEdicao" @click="cancelarEdicao" type="button" class="mt-1 text-gray-500 text-xs underline">Cancelar</button>
+                        </div>
                     </form>
                 </div>
 
-                <!-- Tabela -->
+                <!-- Tabela de Dados -->
                 <div class="flex-1 overflow-auto p-0">
                     <table class="w-full border-collapse">
                         <thead class="bg-gray-100 sticky top-0 z-10 shadow-sm">
@@ -125,7 +132,7 @@
                                 <th>Prob<br>(FQA)</th>
                                 <th class="min-w-[100px]">Descrição<br>Prob</th>
                                 <th class="min-w-[100px]">Nível de Risco<br>(FQA)</th>
-                                <th>Ação</th>
+                                <th data-html2canvas-ignore="true">Ação</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -134,13 +141,15 @@
                                 <td class="text-left font-medium text-gray-800">{{ risco.rubrica }}</td>
                                 <td>{{ risco.imp }}</td>
                                 <td>{{ risco.des }}</td>
-                                <td><span class="px-2 py-0.5 rounded text-[10px] font-bold border border-gray-200 bg-gray-100">{{ risco.diagSlack }}</span></td>
+                                <td><span class="px-2 py-0.5 rounded text-sm font-bold border border-gray-200 bg-gray-100">{{ risco.diagSlack }}</span></td>
                                 <td class="font-bold">{{ risco.sev }}</td>
-                                <td class="text-xs text-gray-500">{{ risco.descSev }}</td>
+                                <td class="text-sm font-medium text-gray-700">{{ risco.descSev }}</td>
                                 <td class="font-bold">{{ risco.prob }}</td>
-                                <td class="text-xs text-gray-500">{{ risco.descProb }}</td>
-                                <td :style="badgeStyleFQA(risco.nivelRisco)" class="font-bold border border-black/20">{{ risco.nivelRisco }}</td>
-                                <td>
+                                <td class="text-sm font-medium text-gray-700">{{ risco.descProb }}</td>
+                                <td :style="badgeStyleFQA(risco.nivelRisco)" class="font-bold border border-black/20 text-sm">
+                                    {{ risco.nivelRisco }}
+                                </td>
+                                <td data-html2canvas-ignore="true">
                                     <div class="flex justify-center gap-2">
                                         <button @click="editarRisco(risco)" class="text-blue-600 hover:text-blue-800">✎</button>
                                         <button @click="excluirRisco(risco.id)" class="text-red-600 hover:text-red-800">✕</button>
@@ -309,52 +318,51 @@
 3.37275	1	4.219439	5.010064
 3.38878	1	4.225651	5.0198
 3.40481	1	4.231864	5.02962
-3.42084	1	4.238076	5.039523
-3.43687	1	4.244289	5.049511
-3.45291	1	4.250501	5.059584
-3.46894	1	4.256713	5.069741
-3.48497	1	4.262926	5.079983
-3.501	1	4.269138	5.090311
-3.51703	1	4.275351	5.100724
-3.53307	1	4.281563	5.111223
-3.5491	1	4.287776	5.121808
-3.56513	1	4.293988	5.13248
-3.58116	1	4.3002	5.143237
-3.59719	1	4.306413	5.154082
-3.61323	1	4.312625	5.165014
-3.62926	1	4.318838	5.176033
-3.64529	1	4.32505	5.187139
-3.66132	1	4.331263	5.198334
-3.67735	1	4.337475	5.209616
-3.69339	1	4.343687	5.220987
-3.70942	1	4.3499	5.232447
-3.72545	1	4.356112	5.243995
-3.74148	1	4.362325	5.255632
-3.75752	1	4.368537	5.267359
-3.77355	1	4.374749	5.279175
-3.78958	1	4.380962	5.291081
-3.80561	1	4.387174	5.303077
-3.82164	1	4.393387	5.315163
-3.83768	1	4.399599	5.32734
-3.85371	1	4.405812	5.339608
-3.86974	1	4.412024	5.351967
-3.88577	1	4.418236	5.364418
-3.9018	1	4.424449	5.37696
-3.91784	1	4.430661	5.389594
-3.93387	1	4.436874	5.402319
-3.9499	1	4.443086	5.415138
-3.96593	1	4.449299	5.428049
-3.98196	1	4.455511	5.441052
-3.998	1	4.461723	5.454149
-4.01403	1	4.467936	5.46734
-4.03006	1	4.474148	5.480624
-4.04609	1	4.480361	5.494001
-4.06212	1	4.486573	5.507473
-4.07816	1	4.492786	5.52104
-4.09419	1	4.498998	5.5347
-4.11022	1	4.50521	5.548456
-4.12625	1	4.511423	5.562307
-4.14228	1	4.517635	5.576254
+3.42084	1	4.238076	5.049511
+3.43687	1	4.244289	5.059584
+3.45291	1	4.250501	5.069741
+3.46894	1	4.256713	5.079983
+3.48497	1	4.262926	5.090311
+3.501	1	4.269138	5.100724
+3.51703	1	4.275351	5.111223
+3.53307	1	4.281563	5.121808
+3.5491	1	4.287776	5.13248
+3.56513	1	4.293988	5.143237
+3.58116	1	4.3002	5.154082
+3.59719	1	4.306413	5.165014
+3.61323	1	4.312625	5.176033
+3.62926	1	4.318838	5.187139
+3.64529	1	4.32505	5.198334
+3.66132	1	4.331263	5.209616
+3.67735	1	4.337475	5.220987
+3.69339	1	4.343687	5.232447
+3.70942	1	4.3499	5.243995
+3.72545	1	4.356112	5.255632
+3.74148	1	4.362325	5.267359
+3.75752	1	4.368537	5.279175
+3.77355	1	4.374749	5.291081
+3.78958	1	4.380962	5.303077
+3.80561	1	4.387174	5.315163
+3.82164	1	4.393387	5.32734
+3.83768	1	4.399599	5.339608
+3.85371	1	4.405812	5.351967
+3.86974	1	4.412024	5.364418
+3.88577	1	4.418236	5.37696
+3.9018	1	4.424449	5.389594
+3.91784	1	4.430661	5.402319
+3.93387	1	4.436874	5.415138
+3.9499	1	4.443086	5.428049
+3.96593	1	4.449299	5.441052
+3.98196	1	4.455511	5.454149
+3.998	1	4.461723	5.46734
+4.01403	1	4.467936	5.480624
+4.03006	1	4.474148	5.494001
+4.04609	1	4.480361	5.507473
+4.06212	1	4.486573	5.52104
+4.07816	1	4.492786	5.5347
+4.09419	1	4.498998	5.548456
+4.11022	1	4.50521	5.562307
+4.12625	1	4.511423	5.576254
 4.15832	1	4.523848	5.590296
 4.17435	1	4.53006	5.604434
 4.19038	1	4.536273	5.618668
@@ -578,86 +586,86 @@
 7.68537	3.508724	5.890581	9
 7.7014	3.506987	5.896794	9
 7.71743	3.505189	5.903006	9
-7.73347	3.503334	5.909218	9
-7.7495	3.501428	5.915431	9
-7.76553	3.499477	5.921643	9
-7.78156	3.497484	5.927856	9
-7.7976	3.495456	5.934068	9
-7.81363	3.493398	5.940281	9
-7.82966	3.491315	5.946493	9
-7.84569	3.489212	5.952705	9
-7.86172	3.487095	5.958918	9
-7.87776	3.484969	5.96513	9
-7.89379	3.482838	5.971343	9
-7.90982	3.480709	5.977555	9
-7.92585	3.478587	5.983768	9
-7.94188	3.476476	5.98998	9
-7.95792	3.474382	5.996192	9
-7.97395	3.472311	6.002405	9
-7.98998	3.470267	6.008617	9
-8.00601	3.468256	6.01483	9
-8.02204	3.466283	6.021042	9
-8.03808	3.464353	6.027255	9
-8.05411	3.462472	6.033467	9
-8.07014	3.460645	6.039679	9
-8.08617	3.458876	6.045892	9
-8.1022	3.457172	6.052104	9
-8.11824	3.455538	6.058317	9
-8.13427	3.453978	6.064529	9
-8.1503	3.452498	6.070741	9
-8.16633	3.451104	6.076954	9
-8.18236	3.4498	6.083166	9
-8.1984	3.448591	6.089379	9
-8.21443	3.447484	6.095591	9
-8.23046	3.446483	6.101804	9
-8.24649	3.445594	6.108016	9
-8.26253	3.444821	6.114228	9
-8.27856	3.444171	6.120441	9
-8.29459	3.443647	6.126653	9
-8.31062	3.443256	6.132866	9
-8.32665	3.443003	6.139078	9
-8.34269	3.442893	6.145291	9
-8.35872	3.442931	6.151503	9
-8.37475	3.443123	6.157715	9
-8.39078	3.443473	6.163928	9
-8.40681	3.443988	6.17014	9
-8.42285	3.444671	6.176353	9
-8.43888	3.445529	6.182565	9
-8.45491	3.446567	6.188778	9
-8.47094	3.44779	6.19499	9
-8.48697	3.449203	6.201202	9
-8.50301	3.450812	6.207415	9
-8.51904	3.452621	6.213627	9
-8.53507	3.454636	6.21984	9
-8.5511	3.456863	6.226052	9
-8.56713	3.459306	6.232265	9
-8.58317	3.46197	6.238477	9
-8.5992	3.464862	6.244689	9
-8.61523	3.467986	6.250902	9
-8.63126	3.471347	6.257114	9
-8.64729	3.474952	6.263327	9
-8.66333	3.478804	6.269539	9
-8.67936	3.482909	6.275752	9
-8.69539	3.487273	6.281964	9
-8.71142	3.4919	6.288176	9
-8.72745	3.496797	6.294389	9
-8.74349	3.501967	6.300601	9
-8.75952	3.507417	6.306814	9
-8.77555	3.513152	6.313026	9
-8.79158	3.519177	6.319238	9
-8.80762	3.525497	6.325451	9
-8.82365	3.532117	6.331663	9
-8.83968	3.539044	6.337876	9
-8.85571	3.546281	6.344088	9
-8.87174	3.553834	6.350301	9
-8.88778	3.561709	6.356513	9
-8.90381	3.56991	6.362725	9
-8.91984	3.578443	6.368938	9
-8.93587	3.587314	6.37515	9
-8.9519	3.596527	6.381363	9
-8.96794	3.606088	6.387575	9
-8.98397	3.616001	6.393788	9
-9	3.626273	6.4	9`;
+7.73347	3.603374	5.909218	9
+7.7495	3.605676	5.915431	9
+7.76553	3.607867	5.921643	9
+7.78156	3.609948	5.927856	9
+7.7976	3.611923	5.934068	9
+7.81363	3.613793	5.940281	9
+7.82966	3.615562	5.946493	9
+7.84569	3.61723	5.952705	9
+7.86172	3.618802	5.958918	9
+7.87776	3.620279	5.96513	9
+7.89379	3.621663	5.971343	9
+7.90982	3.622958	5.977555	9
+7.92585	3.624164	5.983768	9
+7.94188	3.625286	5.98998	9
+7.95792	3.626325	5.996192	9
+7.97395	3.627284	6.002405	9
+7.98998	3.628164	6.008617	9
+8.00601	3.628969	6.01483	9
+8.02204	3.629701	6.021042	9
+8.03808	3.630362	6.027255	9
+8.05411	3.630955	6.033467	9
+8.07014	3.631481	6.039679	9
+8.08617	3.631945	6.045892	9
+8.1022	3.632346	6.052104	9
+8.11824	3.63269	6.058317	9
+8.13427	3.632976	6.064529	9
+8.1503	3.633209	6.070741	9
+8.16633	3.63339	6.076954	9
+8.18236	3.633522	6.083166	9
+8.1984	3.633608	6.089379	9
+8.21443	3.633648	6.095591	9
+8.23046	3.633647	6.101804	9
+8.24649	3.633607	6.108016	9
+8.26253	3.633529	6.114228	9
+8.27856	3.633416	6.120441	9
+8.29459	3.633271	6.126653	9
+8.31062	3.633096	6.132866	9
+8.32665	3.632893	6.139078	9
+8.34269	3.632665	6.145291	9
+8.35872	3.632415	6.151503	9
+8.37475	3.632144	6.157715	9
+8.39078	3.631855	6.163928	9
+8.40681	3.63155	6.17014	9
+8.42285	3.631232	6.176353	9
+8.43888	3.630903	6.182565	9
+8.45491	3.630566	6.188778	9
+8.47094	3.630223	6.19499	9
+8.48697	3.629877	6.201202	9
+8.50301	3.629529	6.207415	9
+8.51904	3.629182	6.213627	9
+8.53507	3.628839	6.21984	9
+8.5511	3.628502	6.226052	9
+8.56713	3.628174	6.232265	9
+8.58317	3.627856	6.238477	9
+8.5992	3.627551	6.244689	9
+8.61523	3.627262	6.250902	9
+8.63126	3.626991	6.257114	9
+8.64729	3.626741	6.263327	9
+8.66333	3.626513	6.269539	9
+8.67936	3.62631	6.275752	9
+8.69539	3.626135	6.281964	9
+8.71142	3.62599	6.288176	9
+8.72745	3.625878	6.294389	9
+8.74349	3.6258	6.300601	9
+8.75952	3.625759	6.306814	9
+8.77555	3.625758	6.313026	9
+8.79158	3.625799	6.319238	9
+8.80762	3.625884	6.325451	9
+8.82365	3.626017	6.331663	9
+8.83968	3.626198	6.337876	9
+8.85571	3.626431	6.344088	9
+8.87174	3.626718	6.350301	9
+8.88778	3.627061	6.356513	9
+8.90381	3.627463	6.362725	9
+8.91984	3.627926	6.368938	9
+8.93587	3.628453	6.37515	9
+8.9519	3.629046	6.381363	9
+8.96794	3.629707	6.387575	9
+8.98397	3.630439	6.393788	9
+9	3.631244	6.4	9`;
 
     // --- 2. CONFIGURAÇÕES & MAPS ---
     const MAP_IMP_SEV = { 1:5, 2:5, 3:4, 4:4, 5:3, 6:2, 7:2, 8:1, 9:1 };
@@ -667,7 +675,7 @@
     const MAP_SEV_DESC = {
         1: "Lesão muito leve",
         2: "Lesão leve",
-        3: "Lesão leve", // Atenção: Ajustar se necessário (Imp 5 -> Sev 3)
+        3: "Lesão leve", 
         4: "Lesão moderada",
         5: "Lesão crítica ou fatal"
     };
@@ -693,10 +701,21 @@
     const processData = () => {
         const lines = rawDataStr.trim().split('\n');
         const dataSup = [], dataMid = [], dataInf = [];
+        
+        // NOVA FÓRMULA (Superior) - Excesso?
+        // y_superior = max(1, 0.097044*x³ - 2.473159*x² + 20.987723*x - 55.677460)
+        const slackSupFormula = (x) => Math.max(1, 0.097044*Math.pow(x,3) - 2.473159*Math.pow(x,2) + 20.987723*x - 55.677460);
+
         lines.forEach(line => {
             const parts = line.split(/\t|\s+/); if(parts.length < 4) return;
             const x = parseFloat(parts[0]);
-            dataSup.push({x, y: parseFloat(parts[1])}); dataMid.push({x, y: parseFloat(parts[2])}); dataInf.push({x, y: parseFloat(parts[3])});
+            
+            // Usamos a fórmula para a Superior (Coluna 2 no visual, índice 1) para garantir suavidade
+            dataSup.push({x, y: slackSupFormula(x)});
+            
+            // Usamos os dados brutos para as outras (Média e Inferior)
+            dataMid.push({x, y: parseFloat(parts[2])}); 
+            dataInf.push({x, y: parseFloat(parts[3])});
         });
         return { dataSup, dataMid, dataInf };
     };
@@ -757,7 +776,8 @@
             
             groups.forEach(g => {
                 const xPos = x.getPixelForValue(g.x), yPos = y.getPixelForValue(g.y);
-                const xOff = isSlack ? 0 : -15; 
+                const xOff = isSlack ? 0 : 0; // CORRIGIDO: Removido offset negativo do FQA para centralizar
+                
                 let pointColor = 'black';
                 if (!isSlack) {
                     const level = getNivelRisco(g.x, g.y);
@@ -778,7 +798,7 @@
                 } else {
                     ctx.textBaseline = 'top';
                     let textY = yPos - ((g.ids.length * 12) / 2);
-                    g.ids.forEach((id, i) => ctx.fillText(id, xPos + xOff + 12, textY + (i * 12)));
+                    g.ids.forEach((id, i) => ctx.fillText(id, xPos + 8, textY + (i * 12))); // CORRIGIDO: +8px à direita
                 }
             });
             ctx.restore();
@@ -799,12 +819,12 @@
             drawText("Fronteira Inferior de Aceitabilidade", 6, 4.85, '#4b5563', -22); 
             drawText("Melhoria", 7, 6.5); drawText("Ação Urgente", 3, 8);
 
-            ctx.save(); ctx.font = 'bold 12px Inter, sans-serif'; ctx.fillStyle = '#374151';
-            const yAxisPos = bottom + 35;
+            ctx.save(); ctx.font = 'bold 14px Inter, sans-serif'; ctx.fillStyle = '#374151';
+            const yAxisPos = bottom + 45;
             ctx.textAlign = 'center'; ctx.fillText("IMPORTÂNCIA", (left + right) / 2, yAxisPos);
             ctx.textAlign = 'left'; ctx.fillText("BAIXA   <----------------------------------", left, yAxisPos);
             ctx.textAlign = 'right'; ctx.fillText("---------------------------------->   ALTA", right, yAxisPos);
-            const xAxisPos = left - 35;
+            const xAxisPos = left - 45;
             ctx.translate(xAxisPos, (top + bottom) / 2); ctx.rotate(-Math.PI / 2);
             ctx.textAlign = 'center'; ctx.fillText("DESEMPENHO", 0, 0);
             ctx.textAlign = 'left'; ctx.fillText("RUIM   <----------------------------------", -((bottom - top) / 2), 0);
@@ -866,8 +886,79 @@
             };
             const exportarExcel = () => {
                 const wb = XLSX.utils.book_new(); 
-                const data = riscosOrdenados.value.map(r => ({ "ID": r.id, "Rubrica": r.rubrica, "Imp (Slack)": r.imp, "Des (Slack)": r.des, "Diag (Slack)": r.diagSlack, "Sev (FQA)": r.sev, "Desc Sev": r.descSev, "Prob (FQA)": r.prob, "Desc Prob": r.descProb, "Nível Risco": r.nivelRisco }));
+                const data = riscosOrdenados.value.map(r => ({ "ID": r.id, "Rubrica": r.rubrica, "Imp": r.imp, "Des": r.des, "Diag": r.diagSlack, "Sev": r.sev, "Prob": r.prob, "Risco": r.nivelRisco }));
                 XLSX.utils.book_append_sheet(wb, ws, "Riscos"); XLSX.writeFile(wb, "Gestao_Riscos.xlsx");
+            };
+
+            const exportarPDF = () => {
+                const element = document.createElement('div');
+                element.style.width = '100%';
+                
+                const headerHtml = `
+                    <div style="padding: 20px;">
+                        <h1 style="font-size: 24px; font-weight: bold; text-align: center; margin-bottom: 10px;">RELATÓRIO DE ANÁLISE DE RISCOS</h1>
+                        <p style="text-align: center; color: #666; margin-bottom: 20px;">Data: ${new Date().toLocaleDateString()}</p>
+                        <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
+                            <thead style="background-color: #f1f5f9;">
+                                <tr>
+                                    <th style="border: 1px solid #ccc; padding: 5px;">ID</th>
+                                    <th style="border: 1px solid #ccc; padding: 5px;">Rubrica</th>
+                                    <th style="border: 1px solid #ccc; padding: 5px;">Imp</th>
+                                    <th style="border: 1px solid #ccc; padding: 5px;">Des</th>
+                                    <th style="border: 1px solid #ccc; padding: 5px;">Diag.</th>
+                                    <th style="border: 1px solid #ccc; padding: 5px;">Sev</th>
+                                    <th style="border: 1px solid #ccc; padding: 5px;">Desc. Sev</th>
+                                    <th style="border: 1px solid #ccc; padding: 5px;">Prob</th>
+                                    <th style="border: 1px solid #ccc; padding: 5px;">Desc. Prob</th>
+                                    <th style="border: 1px solid #ccc; padding: 5px;">Risco</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${riscosOrdenados.value.map(r => `
+                                    <tr>
+                                        <td style="border: 1px solid #ccc; padding: 4px; text-align: center;">${r.id}</td>
+                                        <td style="border: 1px solid #ccc; padding: 4px;">${r.rubrica}</td>
+                                        <td style="border: 1px solid #ccc; padding: 4px; text-align: center;">${r.imp}</td>
+                                        <td style="border: 1px solid #ccc; padding: 4px; text-align: center;">${r.des}</td>
+                                        <td style="border: 1px solid #ccc; padding: 4px; text-align: center;">${r.diagSlack}</td>
+                                        <td style="border: 1px solid #ccc; padding: 4px; text-align: center;">${r.sev}</td>
+                                        <td style="border: 1px solid #ccc; padding: 4px;">${r.descSev}</td>
+                                        <td style="border: 1px solid #ccc; padding: 4px; text-align: center;">${r.prob}</td>
+                                        <td style="border: 1px solid #ccc; padding: 4px;">${r.descProb}</td>
+                                        <td style="border: 1px solid #ccc; padding: 4px; text-align: center; background-color: ${badgeStyleFQA(r.nivelRisco).backgroundColor}; color: ${badgeStyleFQA(r.nivelRisco).color}; font-weight: bold;">${r.nivelRisco}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+
+                const imgSlack = slackChartInst.toBase64Image();
+                const imgFQA = fqaChartInst.toBase64Image();
+
+                element.innerHTML = `
+                    ${headerHtml}
+                    <div class="html2pdf__page-break"></div>
+                    <div style="padding: 20px; text-align: center;">
+                        <h2 style="margin-bottom: 20px;">Matriz Importância x Desempenho</h2>
+                        <img src="${imgSlack}" style="width: 100%; max-width: 700px;">
+                    </div>
+                    <div class="html2pdf__page-break"></div>
+                    <div style="padding: 20px; text-align: center;">
+                        <h2 style="margin-bottom: 20px;">Matriz de Risco (FQA)</h2>
+                        <img src="${imgFQA}" style="width: 100%; max-width: 700px;">
+                    </div>
+                `;
+
+                const opt = {
+                    margin: 0.5,
+                    filename: 'Relatorio_Analise_Riscos.pdf',
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2 },
+                    jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+                };
+
+                html2pdf().set(opt).from(element).save();
             };
 
             const badgeStyleFQA = (nivel) => {
@@ -890,7 +981,7 @@
                     },
                     options: {
                         responsive: true, maintainAspectRatio: true, aspectRatio: 1,
-                        layout: { padding: { bottom: 40, left: 40, top: 10, right: 10 } },
+                        layout: { padding: { bottom: 50, left: 50, top: 10, right: 10 } },
                         plugins: { legend: { display: false }, fqaBackground: false, slackOverlay: true, tooltip: { enabled: false } },
                         scales: {
                             x: { min: 1, max: 9, reverse: true, grid: { color: 'black', lineWidth: 1 } },
@@ -909,13 +1000,11 @@
                         plugins: { legend: { display: false }, slackOverlay: false, tooltip: { enabled: false } },
                         scales: {
                             x: { 
-                                min: 0.5, max: 5.5, grid: {display:false}, ticks: { display: false },
-                                // PADDING ADICIONADO AQUI
+                                min: 0.5, max: 5.5, grid: {display:false}, ticks: { display: false }, 
                                 title: {display:true, text:'SEVERIDADE', font:{weight:'bold', size:18}, padding: { top: 25 }} 
                             },
                             y: { 
-                                min: 0.5, max: 5.5, grid: {display:false}, ticks: { display: false },
-                                // PADDING ADICIONADO AQUI
+                                min: 0.5, max: 5.5, grid: {display:false}, ticks: { display: false }, 
                                 title: {display:true, text:'PROBABILIDADE', font:{weight:'bold', size:18}, padding: { bottom: 25 }} 
                             }
                         }
@@ -930,10 +1019,8 @@
                 const gFQA = agruparRiscos(dados, 'fqa'); fqaChartInst.data.customGroupedData = gFQA; fqaChartInst.data.datasets[0].data = gFQA.map(g => ({x: g.x, y: g.y})); fqaChartInst.update();
             };
 
-            const badgeClassSlack = (s) => s.includes('Urgente')?'bg-red-200 text-red-900':s.includes('Melhoria')?'bg-yellow-100 text-yellow-800':s.includes('Adequado')?'bg-green-100 text-green-900':'bg-gray-200 text-gray-800';
-
             onMounted(initCharts);
-            return { riscos, form, modoEdicao, riscosOrdenados, adicionarRisco, editarRisco, cancelarEdicao, excluirRisco, carregarExemplos, exportarExcel, badgeStyleFQA };
+            return { riscos, form, modoEdicao, riscosOrdenados, adicionarRisco, editarRisco, cancelarEdicao, excluirRisco, carregarExemplos, exportarExcel, exportarPDF, badgeStyleFQA };
         }
     }).mount('#app');
 </script>
