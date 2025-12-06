@@ -94,6 +94,56 @@
             .data-table th { padding: 4px 2px !important; font-size: 0.6rem !important; }
             .data-table td { padding: 3px 2px !important; font-size: 0.68rem !important; }
             .action-btn { padding: 2px 4px !important; font-size: 0.6rem !important; }
+            
+            /* TABS para mobile */
+            .mobile-tabs { display: none; }
+            .tab-content { display: block; }
+            
+            @media (max-width: 768px) {
+                .mobile-tabs { 
+                    display: flex; 
+                    background: #1e293b;
+                    border-bottom: 2px solid #334155;
+                }
+                .tab-btn {
+                    flex: 1;
+                    padding: 0.75rem;
+                    font-size: 0.875rem;
+                    font-weight: 600;
+                    color: #94a3b8;
+                    border: none;
+                    background: transparent;
+                    cursor: pointer;
+                    transition: all 0.3s;
+                }
+                .tab-btn.active {
+                    color: white;
+                    background: #334155;
+                    border-bottom: 3px solid #3b82f6;
+                }
+                .tab-content.hidden { display: none !important; }
+            }
+            
+            /* Campo organização */
+            .org-field {
+                background: #f8fafc;
+                border: 1px solid #cbd5e1;
+                padding: 0.5rem 0.75rem;
+                border-radius: 0.375rem;
+                font-size: 0.875rem;
+                width: 100%;
+                max-width: 400px;
+            }
+            .org-field::placeholder { color: #94a3b8; }
+            
+            @media (max-width: 768px) {
+                .org-field { 
+                    font-size: 0.75rem; 
+                    padding: 0.4rem 0.6rem;
+                    max-width: 100%;
+                }
+                .mobile-btn.mobile-show { display: inline-block !important; }
+            }
         }
     </style>
 </head>
@@ -102,39 +152,60 @@
     <div id="app" class="flex flex-col h-full">
         
         <!-- Header -->
-        <header class="bg-slate-900 text-white p-4 shadow-md flex justify-between items-center z-10 shrink-0" data-html2canvas-ignore="true">
-            <div>
-                <h1 class="mobile-header-title text-xl font-bold tracking-tight">MATRIZ DE GESTÃO DE RISCOS DE SEGURANÇA DO TRABALHO</h1>
-                <p class="mobile-header-subtitle text-xs text-slate-400">Metodologia Híbrida: Slack (Importância x Desempenho) & FQA (Severidade x Probabilidade) - versão 1 - 2025</p>
+        <header class="bg-slate-900 text-white p-4 shadow-md z-10 shrink-0" data-html2canvas-ignore="true">
+            <div class="flex justify-between items-center mb-3">
+                <div class="flex-1">
+                    <h1 class="mobile-header-title text-xl font-bold tracking-tight">MATRIZ DE GESTÃO DE RISCOS DE SEGURANÇA DO TRABALHO</h1>
+                    <p class="mobile-header-subtitle text-xs text-slate-400">Metodologia Híbrida: Slack (Importância x Desempenho) & FQA (Severidade x Probabilidade) - versão 1 - 2025</p>
+                </div>
+                <div class="flex gap-2">
+                    <button @click="carregarExemplos" class="mobile-btn mobile-show px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded text-sm transition border border-slate-600">
+                        Exemplos
+                    </button>
+                    <button @click="exportarExcel" class="mobile-btn px-4 py-2 bg-green-700 hover:bg-green-600 rounded font-bold text-sm flex items-center gap-2 transition shadow">
+                        Excel
+                    </button>
+                    <button @click="exportarPDF" class="mobile-btn px-4 py-2 bg-red-700 hover:bg-red-600 rounded font-bold text-sm flex items-center gap-2 transition shadow">
+                        PDF
+                    </button>
+                </div>
             </div>
-            <div class="flex gap-2">
-                <button @click="carregarExemplos" class="mobile-btn mobile-hide px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded text-sm transition border border-slate-600">
-                    Carregar Exemplos
-                </button>
-                <button @click="exportarExcel" class="mobile-btn px-4 py-2 bg-green-700 hover:bg-green-600 rounded font-bold text-sm flex items-center gap-2 transition shadow">
-                    Excel
-                </button>
-                <button @click="exportarPDF" class="mobile-btn px-4 py-2 bg-red-700 hover:bg-red-600 rounded font-bold text-sm flex items-center gap-2 transition shadow">
-                    PDF
-                </button>
+            
+            <!-- Campo Organização -->
+            <div class="flex items-center gap-3">
+                <label class="text-xs text-slate-300 whitespace-nowrap">Organização (opcional):</label>
+                <input 
+                    v-model="organizacao" 
+                    type="text" 
+                    class="org-field" 
+                    placeholder="Insira o nome da organização"
+                    maxlength="100"
+                />
             </div>
         </header>
+
+        <!-- TABS Mobile -->
+        <div class="mobile-tabs">
+            <button @click="activeTab = 'graficos'" :class="{'active': activeTab === 'graficos'}" class="tab-btn">
+                📊 Gráficos
+            </button>
+            <button @click="activeTab = 'dados'" :class="{'active': activeTab === 'dados'}" class="tab-btn">
+                📋 Dados
+            </button>
+        </div>
 
         <!-- Main Content -->
         <div id="print-area" class="main-content flex-1 flex overflow-hidden pdf-content">
             
             <!-- Coluna Esquerda: Gráficos -->
-            <div class="charts-column w-2/5 p-4 flex flex-col gap-6 overflow-y-auto bg-gray-50 border-r border-gray-300">
+            <div class="charts-column tab-content w-2/5 p-4 flex flex-col gap-6 overflow-y-auto bg-gray-50 border-r border-gray-300" :class="{'hidden': activeTab === 'dados'}">
                 
                 <!-- Gráfico SLACK -->
                 <div class="chart-card bg-white p-2 rounded-lg shadow-sm border border-gray-200 w-full" id="chart1-container">
                     <div class="flex justify-between items-center mb-2">
                         <h3 class="chart-title font-extrabold text-gray-800 text-base border-b-0 pb-0 px-2">MATRIZ IMPORTÂNCIA X DESEMPENHO</h3>
-                        <button @click="toggleChart1" class="mobile-expand-btn px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700" data-html2canvas-ignore="true">
-                            {{ chart1Expanded ? '−' : '+' }}
-                        </button>
                     </div>
-                    <div class="chart-box-container" :class="{ 'chart-expanded': chart1Expanded }">
+                    <div class="chart-box-container">
                         <canvas id="slackChart"></canvas>
                     </div>
                 </div>
@@ -143,18 +214,15 @@
                 <div class="chart-card bg-white p-2 rounded-lg shadow-sm border border-gray-200 w-full mb-8" id="chart2-container">
                     <div class="flex justify-between items-center mb-2">
                         <h3 class="chart-title font-extrabold text-gray-800 text-base border-b-0 pb-0 px-2">MATRIZ DE RISCO (Severidade x Probabilidade)</h3>
-                        <button @click="toggleChart2" class="mobile-expand-btn px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700" data-html2canvas-ignore="true">
-                            {{ chart2Expanded ? '−' : '+' }}
-                        </button>
                     </div>
-                    <div class="chart-box-container" :class="{ 'chart-expanded': chart2Expanded }">
+                    <div class="chart-box-container">
                         <canvas id="fqaChart"></canvas>
                     </div>
                 </div>
             </div>
 
             <!-- Coluna Direita: Inputs e Tabela -->
-            <div class="table-column w-3/5 flex flex-col bg-white shadow-xl z-20">
+            <div class="table-column tab-content w-3/5 flex flex-col bg-white shadow-xl z-20" :class="{'hidden': activeTab === 'graficos'}">
                 
                 <!-- Formulário -->
                 <div class="form-section p-4 bg-slate-50 border-b border-gray-200" data-html2canvas-ignore="true">
@@ -935,8 +1003,8 @@
             const riscos = ref([]);
             const form = ref({ id: 1, rubrica: '', imp: 5, des: 5 });
             const modoEdicao = ref(false);
-            const chart1Expanded = ref(false);
-            const chart2Expanded = ref(false);
+            const activeTab = ref('graficos');
+            const organizacao = ref('');
             let slackChartInst = null, fqaChartInst = null;
 
             const calcularRisco = (r) => {
@@ -974,6 +1042,8 @@
             };
             const exportarExcel = () => {
                 const wb = XLSX.utils.book_new(); 
+                
+                // Dados da tabela
                 const data = riscosOrdenados.value.map(r => ({ 
                     "ID": r.id, 
                     "Rubrica": r.rubrica, 
@@ -986,7 +1056,71 @@
                     "Desc. Prob": r.descProb,
                     "Nível de Risco": r.nivelRisco 
                 }));
+                
+                // Adicionar linha de rodapé com data e organização
+                const dataAtual = new Date().toLocaleDateString('pt-BR');
+                const orgText = organizacao.value ? organizacao.value : '(Não informado)';
+                data.push({
+                    "ID": `Dados exportados em ${dataAtual}`,
+                    "Rubrica": orgText,
+                    "Imp": "",
+                    "Des": "",
+                    "Diag (Slack)": "",
+                    "Sev": "",
+                    "Desc. Sev": "",
+                    "Prob": "",
+                    "Desc. Prob": "",
+                    "Nível de Risco": ""
+                });
+                
                 const ws = XLSX.utils.json_to_sheet(data);
+                
+                // Largura das colunas
+                ws['!cols'] = [
+                    { wch: 5 },  // ID
+                    { wch: 35 }, // Rubrica
+                    { wch: 5 },  // Imp
+                    { wch: 5 },  // Des
+                    { wch: 15 }, // Diag (Slack)
+                    { wch: 5 },  // Sev
+                    { wch: 20 }, // Desc. Sev
+                    { wch: 5 },  // Prob
+                    { wch: 20 }, // Desc. Prob
+                    { wch: 15 }  // Nível de Risco
+                ];
+                
+                // Estilos (header azul, bordas)
+                const range = XLSX.utils.decode_range(ws['!ref']);
+                for (let R = range.s.r; R <= range.e.r; ++R) {
+                    for (let C = range.s.c; C <= range.e.c; ++C) {
+                        const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+                        if (!ws[cellAddress]) continue;
+                        
+                        // Inicializar estilo
+                        if (!ws[cellAddress].s) ws[cellAddress].s = {};
+                        
+                        // Bordas em todas as células
+                        ws[cellAddress].s.border = {
+                            top: { style: 'thin', color: { rgb: '000000' } },
+                            bottom: { style: 'thin', color: { rgb: '000000' } },
+                            left: { style: 'thin', color: { rgb: '000000' } },
+                            right: { style: 'thin', color: { rgb: '000000' } }
+                        };
+                        
+                        // Header (primeira linha): azul com texto branco
+                        if (R === 0) {
+                            ws[cellAddress].s.fill = { fgColor: { rgb: '4472C4' } };
+                            ws[cellAddress].s.font = { bold: true, color: { rgb: 'FFFFFF' } };
+                            ws[cellAddress].s.alignment = { horizontal: 'center', vertical: 'center' };
+                        }
+                        
+                        // Última linha (rodapé): negrito
+                        if (R === range.e.r) {
+                            ws[cellAddress].s.font = { bold: true };
+                        }
+                    }
+                }
+                
                 XLSX.utils.book_append_sheet(wb, ws, "Riscos"); 
                 XLSX.writeFile(wb, "Gestao_Riscos_SST.xlsx");
             };
@@ -1153,23 +1287,12 @@
                 const gFQA = agruparRiscos(dados, 'fqa'); fqaChartInst.data.customGroupedData = gFQA; fqaChartInst.data.datasets[0].data = gFQA.map(g => ({x: g.x, y: g.y})); fqaChartInst.update();
             };
 
-            const toggleChart1 = () => {
-                chart1Expanded.value = !chart1Expanded.value;
-                setTimeout(() => { if(slackChartInst) slackChartInst.resize(); }, 300);
-            };
-
-            const toggleChart2 = () => {
-                chart2Expanded.value = !chart2Expanded.value;
-                setTimeout(() => { if(fqaChartInst) fqaChartInst.resize(); }, 300);
-            };
-
             onMounted(initCharts);
             return { 
                 riscos, form, modoEdicao, riscosOrdenados, 
-                chart1Expanded, chart2Expanded,
+                activeTab, organizacao,
                 adicionarRisco, editarRisco, cancelarEdicao, excluirRisco, 
-                carregarExemplos, exportarExcel, exportarPDF, badgeStyleFQA,
-                toggleChart1, toggleChart2
+                carregarExemplos, exportarExcel, exportarPDF, badgeStyleFQA
             };
         }
     }).mount('#app');
