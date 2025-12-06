@@ -28,8 +28,19 @@
         
         canvas { touch-action: none; }
 
+        /* Botão de expansão: escondido no desktop */
+        .mobile-expand-btn { display: none; }
+
+        /* Gráfico expandido no mobile */
+        .chart-expanded {
+            height: 400px !important;
+        }
+
         /* ====== RESPONSIVIDADE MOBILE ====== */
         @media (max-width: 768px) {
+            /* Mostrar botão de expansão */
+            .mobile-expand-btn { display: inline-block; }
+            
             /* Header compacto */
             .mobile-header-title { font-size: 0.875rem !important; line-height: 1.2; }
             .mobile-header-subtitle { font-size: 0.65rem !important; }
@@ -116,17 +127,27 @@
             <div class="charts-column w-2/5 p-4 flex flex-col gap-6 overflow-y-auto bg-gray-50 border-r border-gray-300">
                 
                 <!-- Gráfico SLACK -->
-                <div class="chart-card bg-white p-2 rounded-lg shadow-sm border border-gray-200 w-full">
-                    <h3 class="chart-title font-extrabold text-gray-800 text-base mb-2 border-b pb-1 px-2">MATRIZ IMPORTÂNCIA X DESEMPENHO</h3>
-                    <div class="chart-box-container">
+                <div class="chart-card bg-white p-2 rounded-lg shadow-sm border border-gray-200 w-full" id="chart1-container">
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="chart-title font-extrabold text-gray-800 text-base border-b-0 pb-0 px-2">MATRIZ IMPORTÂNCIA X DESEMPENHO</h3>
+                        <button @click="toggleChart1" class="mobile-expand-btn px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700" data-html2canvas-ignore="true">
+                            {{ chart1Expanded ? '−' : '+' }}
+                        </button>
+                    </div>
+                    <div class="chart-box-container" :class="{ 'chart-expanded': chart1Expanded }">
                         <canvas id="slackChart"></canvas>
                     </div>
                 </div>
 
                 <!-- Gráfico FQA -->
-                <div class="chart-card bg-white p-2 rounded-lg shadow-sm border border-gray-200 w-full mb-8">
-                    <h3 class="chart-title font-extrabold text-gray-800 text-base mb-2 border-b pb-1 px-2">MATRIZ DE RISCO (Severidade x Probabilidade)</h3>
-                    <div class="chart-box-container">
+                <div class="chart-card bg-white p-2 rounded-lg shadow-sm border border-gray-200 w-full mb-8" id="chart2-container">
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="chart-title font-extrabold text-gray-800 text-base border-b-0 pb-0 px-2">MATRIZ DE RISCO (Severidade x Probabilidade)</h3>
+                        <button @click="toggleChart2" class="mobile-expand-btn px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700" data-html2canvas-ignore="true">
+                            {{ chart2Expanded ? '−' : '+' }}
+                        </button>
+                    </div>
+                    <div class="chart-box-container" :class="{ 'chart-expanded': chart2Expanded }">
                         <canvas id="fqaChart"></canvas>
                     </div>
                 </div>
@@ -865,25 +886,35 @@
         afterDraw: (chart) => {
             if (chart.config.options.plugins.slackOverlay === false) return;
             const { ctx, scales: { x, y }, chartArea: { left, right, top, bottom } } = chart;
+            
+            // Detectar se é mobile
+            const isMobile = window.innerWidth <= 768;
+            const labelSize = isMobile ? 10 : 16;
+            const axisSize = isMobile ? 9 : 14;
+            
             const drawText = (text, xVal, yVal, color='#374151', rot=0) => {
                 ctx.save(); ctx.translate(x.getPixelForValue(xVal), y.getPixelForValue(yVal));
                 ctx.rotate(rot * Math.PI / 180); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                ctx.fillStyle = color; ctx.font = 'bold 16px Inter, sans-serif'; ctx.fillText(text, 0, 0); ctx.restore();
+                ctx.fillStyle = color; ctx.font = `bold ${labelSize}px Inter, sans-serif`; ctx.fillText(text, 0, 0); ctx.restore();
             };
             drawText("Excesso?", 7.5, 1.5); drawText("Adequado", 5.5, 3.5);
-            drawText("Fronteira Inferior de Aceitabilidade", 6, 4.85, '#4b5563', -22); 
-            drawText("Melhoria", 7, 6.5); drawText("Ação Urgente", 3, 8);
+            drawText(isMobile ? "Front. Inf. Aceit." : "Fronteira Inferior de Aceitabilidade", 6, 4.85, '#4b5563', -22); 
+            drawText("Melhoria", 7, 6.5); drawText(isMobile ? "Ação Urg." : "Ação Urgente", 3, 8);
 
-            ctx.save(); ctx.font = 'bold 14px Inter, sans-serif'; ctx.fillStyle = '#374151';
-            const yAxisPos = bottom + 45;
+            ctx.save(); ctx.font = `bold ${axisSize}px Inter, sans-serif`; ctx.fillStyle = '#374151';
+            const yAxisPos = bottom + (isMobile ? 30 : 45);
             ctx.textAlign = 'center'; ctx.fillText("IMPORTÂNCIA", (left + right) / 2, yAxisPos);
-            ctx.textAlign = 'left'; ctx.fillText("BAIXA   <----------------------------------", left, yAxisPos);
-            ctx.textAlign = 'right'; ctx.fillText("---------------------------------->   ALTA", right, yAxisPos);
-            const xAxisPos = left - 45;
+            if (!isMobile) {
+                ctx.textAlign = 'left'; ctx.fillText("BAIXA   <----------------------------------", left, yAxisPos);
+                ctx.textAlign = 'right'; ctx.fillText("---------------------------------->   ALTA", right, yAxisPos);
+            }
+            const xAxisPos = left - (isMobile ? 30 : 45);
             ctx.translate(xAxisPos, (top + bottom) / 2); ctx.rotate(-Math.PI / 2);
             ctx.textAlign = 'center'; ctx.fillText("DESEMPENHO", 0, 0);
-            ctx.textAlign = 'left'; ctx.fillText("RUIM   <----------------------------------", -((bottom - top) / 2), 0);
-            ctx.textAlign = 'right'; ctx.fillText("---------------------------------->   BOM", ((bottom - top) / 2), 0);
+            if (!isMobile) {
+                ctx.textAlign = 'left'; ctx.fillText("RUIM   <----------------------------------", -((bottom - top) / 2), 0);
+                ctx.textAlign = 'right'; ctx.fillText("---------------------------------->   BOM", ((bottom - top) / 2), 0);
+            }
             ctx.restore();
         }
     };
@@ -904,6 +935,8 @@
             const riscos = ref([]);
             const form = ref({ id: 1, rubrica: '', imp: 5, des: 5 });
             const modoEdicao = ref(false);
+            const chart1Expanded = ref(false);
+            const chart2Expanded = ref(false);
             let slackChartInst = null, fqaChartInst = null;
 
             const calcularRisco = (r) => {
@@ -941,8 +974,21 @@
             };
             const exportarExcel = () => {
                 const wb = XLSX.utils.book_new(); 
-                const data = riscosOrdenados.value.map(r => ({ "ID": r.id, "Rubrica": r.rubrica, "Imp": r.imp, "Des": r.des, "Diag": r.diagSlack, "Sev": r.sev, "Prob": r.prob, "Risco": r.nivelRisco }));
-                XLSX.utils.book_append_sheet(wb, ws, "Riscos"); XLSX.writeFile(wb, "Gestao_Riscos.xlsx");
+                const data = riscosOrdenados.value.map(r => ({ 
+                    "ID": r.id, 
+                    "Rubrica": r.rubrica, 
+                    "Imp": r.imp, 
+                    "Des": r.des, 
+                    "Diag (Slack)": r.diagSlack, 
+                    "Sev": r.sev, 
+                    "Desc. Sev": r.descSev,
+                    "Prob": r.prob, 
+                    "Desc. Prob": r.descProb,
+                    "Nível de Risco": r.nivelRisco 
+                }));
+                const ws = XLSX.utils.json_to_sheet(data);
+                XLSX.utils.book_append_sheet(wb, ws, "Riscos"); 
+                XLSX.writeFile(wb, "Gestao_Riscos_SST.xlsx");
             };
 
             const exportarPDF = () => {
@@ -1036,31 +1082,64 @@
                     },
                     options: {
                         responsive: true, maintainAspectRatio: true, aspectRatio: 1,
-                        layout: { padding: { bottom: 50, left: 50, top: 10, right: 10 } },
+                        layout: { 
+                            padding: { 
+                                bottom: window.innerWidth <= 768 ? 35 : 50, 
+                                left: window.innerWidth <= 768 ? 35 : 50, 
+                                top: 10, 
+                                right: 10 
+                            } 
+                        },
                         plugins: { legend: { display: false }, fqaBackground: false, slackOverlay: true, tooltip: { enabled: false } },
                         scales: {
-                            x: { min: 1, max: 9, reverse: true, grid: { color: 'black', lineWidth: 1 } },
-                            y: { min: 1, max: 9, reverse: true, grid: { color: 'black', lineWidth: 1 } }
+                            x: { 
+                                min: 1, max: 9, reverse: true, 
+                                grid: { color: 'black', lineWidth: 1 },
+                                ticks: { stepSize: 1, display: false }
+                            },
+                            y: { 
+                                min: 1, max: 9, reverse: true, 
+                                grid: { color: 'black', lineWidth: 1 },
+                                ticks: { stepSize: 1, display: false }
+                            }
                         }
                     }
                 });
 
                 const ctxFQA = document.getElementById('fqaChart').getContext('2d');
+                const isMobile = window.innerWidth <= 768;
                 fqaChartInst = new Chart(ctxFQA, {
                     type: 'scatter',
                     data: { datasets: [{ data: [], pointRadius: 0 }] },
                     options: {
                         responsive: true, maintainAspectRatio: true, aspectRatio: 1,
-                        layout: { padding: { bottom: 50, left: 50, top: 10, right: 10 } }, 
+                        layout: { 
+                            padding: { 
+                                bottom: isMobile ? 35 : 50, 
+                                left: isMobile ? 35 : 50, 
+                                top: 10, 
+                                right: 10 
+                            } 
+                        }, 
                         plugins: { legend: { display: false }, slackOverlay: false, tooltip: { enabled: false } },
                         scales: {
                             x: { 
                                 min: 0.5, max: 5.5, grid: {display:false}, ticks: { display: false }, 
-                                title: {display:true, text:'SEVERIDADE', font:{weight:'bold', size:18}, padding: { top: 25 }} 
+                                title: {
+                                    display:true, 
+                                    text:'SEVERIDADE', 
+                                    font:{weight:'bold', size: isMobile ? 12 : 18}, 
+                                    padding: { top: isMobile ? 15 : 25 }
+                                } 
                             },
                             y: { 
                                 min: 0.5, max: 5.5, grid: {display:false}, ticks: { display: false }, 
-                                title: {display:true, text:'PROBABILIDADE', font:{weight:'bold', size:18}, padding: { bottom: 25 }} 
+                                title: {
+                                    display:true, 
+                                    text:'PROBABILIDADE', 
+                                    font:{weight:'bold', size: isMobile ? 12 : 18}, 
+                                    padding: { bottom: isMobile ? 15 : 25 }
+                                } 
                             }
                         }
                     }
@@ -1074,8 +1153,24 @@
                 const gFQA = agruparRiscos(dados, 'fqa'); fqaChartInst.data.customGroupedData = gFQA; fqaChartInst.data.datasets[0].data = gFQA.map(g => ({x: g.x, y: g.y})); fqaChartInst.update();
             };
 
+            const toggleChart1 = () => {
+                chart1Expanded.value = !chart1Expanded.value;
+                setTimeout(() => { if(slackChartInst) slackChartInst.resize(); }, 300);
+            };
+
+            const toggleChart2 = () => {
+                chart2Expanded.value = !chart2Expanded.value;
+                setTimeout(() => { if(fqaChartInst) fqaChartInst.resize(); }, 300);
+            };
+
             onMounted(initCharts);
-            return { riscos, form, modoEdicao, riscosOrdenados, adicionarRisco, editarRisco, cancelarEdicao, excluirRisco, carregarExemplos, exportarExcel, exportarPDF, badgeStyleFQA };
+            return { 
+                riscos, form, modoEdicao, riscosOrdenados, 
+                chart1Expanded, chart2Expanded,
+                adicionarRisco, editarRisco, cancelarEdicao, excluirRisco, 
+                carregarExemplos, exportarExcel, exportarPDF, badgeStyleFQA,
+                toggleChart1, toggleChart2
+            };
         }
     }).mount('#app');
 </script>
