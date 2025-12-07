@@ -128,16 +128,16 @@
             
             /* Campo organização */
             .org-field {
-                background: #ffffff;        /* FUNDO BRANCO para contraste no header escuro */
-                border: 1px solid #cbd5e1;
-                padding: 0.5rem 0.75rem;
-                border-radius: 0.375rem;
-                font-size: 0.875rem;
-                width: 100%;
-                max-width: 400px;
-                color: #1e293b;            /* TEXTO CINZA ESCURO - sempre visível */
+                background: #ffffff !important;        /* FUNDO BRANCO - forçado */
+                border: 1px solid #cbd5e1 !important;
+                padding: 0.5rem 0.75rem !important;
+                border-radius: 0.375rem !important;
+                font-size: 0.875rem !important;
+                width: 100% !important;
+                max-width: 400px !important;
+                color: #1e293b !important;            /* TEXTO CINZA ESCURO - forçado */
             }
-            .org-field::placeholder { color: #94a3b8; }
+            .org-field::placeholder { color: #94a3b8 !important; }
             
             @media (max-width: 768px) {
                 .org-field { 
@@ -183,6 +183,7 @@
                     class="org-field" 
                     placeholder="Insira o nome da organização"
                     maxlength="100"
+                    style="color: #1e293b !important; background: #ffffff !important;"
                 />
             </div>
         </header>
