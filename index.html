@@ -920,7 +920,7 @@
             const isSlack = chart.canvas.id === 'slackChart';
             
             ctx.save();
-            ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.font = 'bold 12px Arial';
+            ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.font = 'bold 10px Arial'; // REDUZIDO: 12px → 10px
             
             groups.forEach(g => {
                 const xPos = x.getPixelForValue(g.x), yPos = y.getPixelForValue(g.y);
@@ -933,7 +933,7 @@
                 }
                 ctx.fillStyle = pointColor; ctx.strokeStyle = pointColor;
                 
-                const size = 6; ctx.lineWidth = 3; 
+                const size = 5; ctx.lineWidth = 2; // REDUZIDO: X menor (6→5), linha mais fina (3→2)
                 ctx.beginPath();
                 ctx.moveTo(xPos + xOff - size, yPos - size); ctx.lineTo(xPos + xOff + size, yPos + size);
                 ctx.moveTo(xPos + xOff + size, yPos - size); ctx.lineTo(xPos + xOff - size, yPos + size);
@@ -945,8 +945,8 @@
                     else { ctx.textAlign = 'left'; ctx.fillText(text, xPos + 10, yPos); }
                 } else {
                     ctx.textBaseline = 'top';
-                    let textY = yPos - ((g.ids.length * 12) / 2);
-                    g.ids.forEach((id, i) => ctx.fillText(id, xPos + 8, textY + (i * 12))); // CORRIGIDO: +8px à direita
+                    let textY = yPos - ((g.ids.length * 10) / 2); // AJUSTADO: 12 → 10 (altura da fonte)
+                    g.ids.forEach((id, i) => ctx.fillText(id, xPos + 8, textY + (i * 10))); // AJUSTADO: espaçamento 12 → 10
                 }
             });
             ctx.restore();
