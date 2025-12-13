@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Gestão de Riscos (Slack + FQA)</title>
+    <title>Sistema de Gestão de Riscos (Slack + FQA) v1.4.2</title>
     
     <!-- Bibliotecas -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -48,7 +48,10 @@
             .mobile-hide { display: none !important; }
             
             /* Container principal em coluna */
-            .main-content { flex-direction: column !important; }
+            .main-content { 
+                flex-direction: column !important; 
+                overflow: visible !important; /* Permitir scroll nas colunas filhas */
+            }
             
             /* Gráficos: largura total */
             .charts-column { 
@@ -72,11 +75,11 @@
                 aspect-ratio: auto !important;
             }
             
-            /* Tabela: largura total */
+            /* Tabela: largura total e scroll forçado */
             .table-column { 
                 width: 100% !important;
-                max-height: calc(100vh - 140px) !important; /* Altura da tela menos header e tabs */
-                overflow-y: auto !important;
+                height: calc(100vh - 140px) !important; /* Altura FIXA (não max) */
+                overflow-y: scroll !important; /* SCROLL sempre visível */
                 -webkit-overflow-scrolling: touch !important;
             }
             
