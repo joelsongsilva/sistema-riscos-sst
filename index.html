@@ -1041,7 +1041,26 @@
             const cancelarEdicao = () => { modoEdicao.value = false; form.value.id = riscos.value.length > 0 ? Math.max(...riscos.value.map(r=>r.id))+1 : 1; form.value.rubrica=''; };
             const excluirRisco = (id) => { riscos.value = riscos.value.filter(r => r.id !== id); atualizarGraficos(); };
             const carregarExemplos = () => {
-                riscos.value = [ { id: 1, rubrica: 'As zonas de trabalho', imp: 5, des: 4 }, { id: 2, rubrica: 'A organização técnica', imp: 1, des: 3 }, { id: 3, rubrica: 'Os locais de trabalho', imp: 3, des: 6 }, { id: 4, rubrica: 'Os riscos de acidentes', imp: 2, des: 5 }, { id: 5, rubrica: 'Os comandos e sinais', imp: 5, des: 7 }, { id: 9, rubrica: 'A carga mental', imp: 1, des: 7 }, { id: 17, rubrica: 'Outro risco', imp: 2, des: 7 } ];
+                riscos.value = [
+                    { id: 1, rubrica: 'As zonas de trabalho', imp: 5, des: 4 },
+                    { id: 2, rubrica: 'A organização técnica entre postos', imp: 1, des: 3 },
+                    { id: 3, rubrica: 'Os locais de trabalho', imp: 3, des: 6 },
+                    { id: 4, rubrica: 'Os riscos de acidentes', imp: 2, des: 5 },
+                    { id: 5, rubrica: 'Os comandos e sinais', imp: 5, des: 7 },
+                    { id: 6, rubrica: 'As ferramentas e material de trabalho', imp: 4, des: 6 },
+                    { id: 7, rubrica: 'O trabalho repetitivo', imp: 3, des: 2 },
+                    { id: 8, rubrica: 'Os manuseios / levantamento de peso', imp: 2, des: 5 },
+                    { id: 9, rubrica: 'A carga mental', imp: 1, des: 7 },
+                    { id: 10, rubrica: 'A iluminação', imp: 3, des: 3 },
+                    { id: 11, rubrica: 'O ruído', imp: 2, des: 8 },
+                    { id: 12, rubrica: 'Os ambientes térmicos', imp: 5, des: 9 },
+                    { id: 13, rubrica: 'Os riscos químicos e biológicos', imp: 4, des: 4 },
+                    { id: 14, rubrica: 'As vibrações', imp: 5, des: 5 },
+                    { id: 15, rubrica: 'As rel de trabalho entre trabalhadores', imp: 6, des: 6 },
+                    { id: 16, rubrica: 'O ambiente social local e geral', imp: 7, des: 7 },
+                    { id: 17, rubrica: 'O conteúdo do trabalho', imp: 2, des: 7 },
+                    { id: 18, rubrica: 'O ambiente psicossocial', imp: 7, des: 8 }
+                ];
                 atualizarGraficos();
             };
             const exportarExcel = () => {
