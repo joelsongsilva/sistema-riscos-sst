@@ -5,6 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Gestão de Riscos (Slack + FQA) v1.5.1</title>
 
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#0f172a">
+    <meta name="description" content="Sistema de Gestão de Riscos de Segurança do Trabalho - Metodologia Híbrida Slack + FQA">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Riscos SST">
+    <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIlNpc3RlbWEgZGUgR2VzdMOjbyBkZSBSaXNjb3MgU1NUIiwKICAic2hvcnRfbmFtZSI6ICJSaXNjb3MgU1NUIiwKICAiZGVzY3JpcHRpb24iOiAiR2VzdMOjbyBkZSBSaXNjb3MgZGUgU2VndXJhbsOnYSBkbyBUcmFiYWxobyAtIE1ldG9kb2xvZ2lhIEjDrWJyaWRhIFNsYWNrICsgRlFBIiwKICAic3RhcnRfdXJsIjogIi4vIiwKICAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwKICAiYmFja2dyb3VuZF9jb2xvciI6ICIjMGYxNzJhIiwKICAidGhlbWVfY29sb3IiOiAiIzBmMTcyYSIsCiAgIm9yaWVudGF0aW9uIjogImFueSIsCiAgImljb25zIjogWwogICAgewogICAgICAic3JjIjogImRhdGE6aW1hZ2Uvc3ZnK3htbDtiYXNlNjQsUEhOMlp5QjRiV3h1Y3owaWFIUjBjRG92TDNkM2R5NTNNeTV2Y21jdk1qQXdNQzl6ZG1jaUlIZHBaSFJvUFNJME1Ea2lJR2hsYVdkb2REMGlOREE1SWo0OGNtVmpkQ0IzYVdSMGFEMGlOREE1SWlCb1pXbG5hSFE5SWpRd09TSWdabWxzYkQwaUl6Tm1PREpmTmlJdlBqeDBaWGgwSUhnOUlqSXdOQ0lnZVQwaU1qQTBJaUJ6ZEhsc1pUMGlabTl1ZEMxemFYcGxPalEwY0hnN1ptOXVkQzEzWldsbmFIUTZZbTlzWkR0bWFXeHNPbmRvYVhSbE95SWdkR1Y0ZEMxaGJtTm9iM0k5SW0xcFpHUnNaU0krVXpNeExITjBQQzlwWm1SbGFYUStQQzkwWlhoMFBqd3ZjM1puUGc9PSIsCiAgICAgICJ0eXBlIjogImltYWdlL3N2Zyt4bWwiLAogICAgICAic2l6ZXMiOiAiNDA5eDQwOSIKICAgIH0sCiAgICB7CiAgICAgICJzcmMiOiAiZGF0YTppbWFnZS9zdmcreG1sO2Jhc2U2NCxQSE4yWnlCNGJXeHVjejBpYUhSMGNEb3ZMM2QzZHk1M015NXZjbWN2TWpBd01DOXpkbWNpSUhkcFpIUm9QU0l4T1RJaUlHaGxhV2RvZEQwaU1Ua3lJajQ4Y21WamRDQjNhV1IwYUQwaU1Ua3lJaUJvWldsbmFIUTlJakU1TWlJZ1ptbHNiRDBpSXpObU9ESXZOaUl2UGp4MFpYaDBJSGc5SWprMklpQjVQU0k1TmlJZ2MzUjViR1U5SW1admJuUXRjMmw2WlRveU1uQjRPMlp2Ym5RdGQyVnBaMmgwT21KdmJHUTdabWxzYkRwM2FHbDBaVHNpSUhSbGVIUXRZVzVqYUc5eVBTSnRhV1JrYkdVaVBsTXpNU3h6ZERBOEwzUmxlSFErUEM5emRtYytQUT09IiwKICAgICAgInR5cGUiOiAiaW1hZ2Uvc3ZnK3htbCIsCiAgICAgICJzaXplcyI6ICIxOTJ4MTkyIgogICAgfQogIF0KfQ==">
+
     <!-- Bibliotecas com fallback CDNs -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js" onerror="loadVueFallback()"></script>
@@ -1744,5 +1752,87 @@
         }).mount('#app');
     }
 </script>
+
+<!-- ====== SERVICE WORKER PARA PWA ====== -->
+<script>
+    // Registrar Service Worker para transformar em PWA instalável
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            // Código do Service Worker inline (como Blob)
+            const swCode = `
+                const CACHE_NAME = 'riscos-sst-v1.5.1';
+                const urlsToCache = [
+                    './',
+                    './index-v1.5.1-github.html'
+                ];
+
+                // Evento de Instalação: Cachear recursos
+                self.addEventListener('install', (event) => {
+                    console.log('[SW] Instalando Service Worker...');
+                    event.waitUntil(
+                        caches.open(CACHE_NAME)
+                            .then((cache) => {
+                                console.log('[SW] Cache aberto, adicionando recursos...');
+                                return cache.addAll(urlsToCache);
+                            })
+                            .then(() => self.skipWaiting())
+                    );
+                });
+
+                // Evento de Ativação: Limpar caches antigos
+                self.addEventListener('activate', (event) => {
+                    console.log('[SW] Ativando Service Worker...');
+                    event.waitUntil(
+                        caches.keys().then((cacheNames) => {
+                            return Promise.all(
+                                cacheNames.map((cacheName) => {
+                                    if (cacheName !== CACHE_NAME) {
+                                        console.log('[SW] Removendo cache antigo:', cacheName);
+                                        return caches.delete(cacheName);
+                                    }
+                                })
+                            );
+                        }).then(() => self.clients.claim())
+                    );
+                });
+
+                // Evento de Fetch: Servir do cache, depois da rede
+                self.addEventListener('fetch', (event) => {
+                    event.respondWith(
+                        caches.match(event.request)
+                            .then((response) => {
+                                // Retornar do cache se disponível, senão buscar da rede
+                                return response || fetch(event.request).catch(() => {
+                                    // Se offline e não está no cache, retornar mensagem
+                                    if (event.request.destination === 'document') {
+                                        return new Response(
+                                            '<h1>Sem conexão</h1><p>Por favor, conecte-se à internet.</p>',
+                                            { headers: { 'Content-Type': 'text/html' } }
+                                        );
+                                    }
+                                });
+                            })
+                    );
+                });
+            `;
+
+            // Criar Blob do Service Worker
+            const blob = new Blob([swCode], { type: 'application/javascript' });
+            const swUrl = URL.createObjectURL(blob);
+
+            // Registrar o Service Worker
+            navigator.serviceWorker.register(swUrl)
+                .then((registration) => {
+                    console.log('✅ Service Worker registrado com sucesso:', registration.scope);
+                })
+                .catch((error) => {
+                    console.log('❌ Erro ao registrar Service Worker:', error);
+                });
+        });
+    } else {
+        console.log('⚠️ Service Worker não suportado neste navegador');
+    }
+</script>
+
 </body>
 </html>
