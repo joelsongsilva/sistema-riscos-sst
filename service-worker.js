@@ -1,4 +1,4 @@
-const CACHE_NAME = 'riscos-sst-v1.5.4-js-force-layout';
+const CACHE_NAME = 'riscos-sst-v1.5.5-onmounted-fix';
 const urlsToCache = [
   './',
   './index.html',

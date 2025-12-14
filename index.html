@@ -366,8 +366,8 @@
         <!-- Header -->
         <header class="bg-slate-900 text-white p-4 shadow-md z-10 shrink-0" data-html2canvas-ignore="true">
             <!-- Badge de Versão (canto superior direito) -->
-            <div style="position: absolute; top: 5px; right: 5px; background: #3b82f6; color: white; padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; z-index: 9999;">
-                v1.5.4-JS
+            <div style="position: absolute; top: 5px; right: 5px; background: #10b981; color: white; padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; z-index: 9999;">
+                v1.5.5
             </div>
 
             <!-- Botão DEBUG (canto superior esquerdo) -->
@@ -378,7 +378,7 @@
             <div class="flex justify-between items-center mb-3">
                 <div class="flex-1">
                     <h1 class="mobile-header-title text-xl font-bold tracking-tight">MATRIZ DE GESTÃO DE RISCOS DE SEGURANÇA DO TRABALHO</h1>
-                    <p class="mobile-header-subtitle text-xs text-slate-400">Metodologia Híbrida: Slack (Importância x Desempenho) & FQA (Severidade x Probabilidade) - versão 1.5.4-JS - 2025</p>
+                    <p class="mobile-header-subtitle text-xs text-slate-400">Metodologia Híbrida: Slack (Importância x Desempenho) & FQA (Severidade x Probabilidade) - versão 1.5.5 - 2025</p>
                 </div>
                 <div class="flex gap-2">
                     <button @click="carregarExemplos" class="mobile-btn mobile-show px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded text-sm transition border border-slate-600">
@@ -1760,6 +1760,14 @@
                     carregarLocalStorage();
                     initCharts();
                     atualizarGraficos();
+
+                    // FORÇAR LAYOUT RESPONSIVO após Vue renderizar completamente
+                    setTimeout(() => {
+                        if (typeof forceResponsiveLayout === 'function') {
+                            forceResponsiveLayout();
+                            console.log('🚀 forceResponsiveLayout chamado via onMounted');
+                        }
+                    }, 1500); // Aguardar 1.5s para garantir renderização completa
                 });
 
                 return {
@@ -1884,7 +1892,7 @@
 
         let html = '<div style="font-family: monospace; font-size: 11px;">';
         html += '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 2px solid #3b82f6; padding-bottom: 10px;">';
-        html += '<strong style="font-size: 14px;">🔍 DEBUG INFO - v1.5.4-JS</strong>';
+        html += '<strong style="font-size: 14px;">🔍 DEBUG INFO - v1.5.5</strong>';
         html += '<button onclick="document.getElementById(\'debug-modal\').remove()" style="background: #ef4444; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold;">✖ Fechar</button>';
         html += '</div>';
 
