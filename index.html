@@ -1471,12 +1471,68 @@
                     });
 
                     const ws = XLSX.utils.json_to_sheet(data);
+
+                    // Largura das colunas
                     ws['!cols'] = [
                         { wch: 5 }, { wch: 35 }, { wch: 5 }, { wch: 5 }, { wch: 15 },
                         { wch: 5 }, { wch: 20 }, { wch: 5 }, { wch: 20 }, { wch: 15 }
                     ];
 
+                    // Aplicar formatação (bordas, negrito no cabeçalho)
+                    const range = XLSX.utils.decode_range(ws['!ref']);
+
+                    // Estilo de borda
+                    const borderStyle = {
+                        top: { style: 'thin', color: { rgb: '000000' } },
+                        bottom: { style: 'thin', color: { rgb: '000000' } },
+                        left: { style: 'thin', color: { rgb: '000000' } },
+                        right: { style: 'thin', color: { rgb: '000000' } }
+                    };
+
+                    // Aplicar formatação em todas as células
+                    for (let R = range.s.r; R <= range.e.r; ++R) {
+                        for (let C = range.s.c; C <= range.e.c; ++C) {
+                            const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+                            if (!ws[cellAddress]) continue;
+
+                            // Inicializar estilo
+                            if (!ws[cellAddress].s) ws[cellAddress].s = {};
+
+                            // Bordas em todas as células
+                            ws[cellAddress].s.border = borderStyle;
+
+                            // Cabeçalho (linha 0): Negrito, fundo cinza, centralizado
+                            if (R === 0) {
+                                ws[cellAddress].s.font = { bold: true, sz: 11, color: { rgb: '1e293b' } };
+                                ws[cellAddress].s.fill = { fgColor: { rgb: 'e2e8f0' } };
+                                ws[cellAddress].s.alignment = { horizontal: 'center', vertical: 'center' };
+                            }
+
+                            // Última linha (rodapé): Negrito
+                            if (R === range.e.r) {
+                                ws[cellAddress].s.font = { bold: true, sz: 10 };
+                            }
+
+                            // Centralizar colunas numéricas (ID, Imp, Des, Sev, Prob)
+                            if (R > 0 && R < range.e.r && (C === 0 || C === 2 || C === 3 || C === 5 || C === 7)) {
+                                ws[cellAddress].s.alignment = { horizontal: 'center', vertical: 'center' };
+                            }
+                        }
+                    }
+
                     XLSX.utils.book_append_sheet(wb, ws, "Riscos");
+
+                    // Configurar opções do workbook para não mostrar linhas de grade
+                    wb.Workbook = {
+                        Views: [{
+                            showGridLines: false
+                        }]
+                    };
+
+                    // Configurar a planilha para não mostrar linhas de grade
+                    if (!ws['!views']) ws['!views'] = [];
+                    ws['!views'][0] = { showGridLines: false };
+
                     XLSX.writeFile(wb, "Gestao_Riscos_SST.xlsx");
                 };
 
@@ -1535,12 +1591,12 @@
                         ${headerHtml}
                         <div class="html2pdf__page-break"></div>
                         <div style="padding: 20px; text-align: center;">
-                            <h2 style="margin-bottom: 20px;">Matriz Importância x Desempenho</h2>
+                            <h2 style="margin-bottom: 20px; font-size: 20px; font-weight: bold; color: #1e293b;">MATRIZ IMPORTÂNCIA X DESEMPENHO</h2>
                             <img src="${imgSlack}" style="width: 100%; max-width: 700px;">
                         </div>
                         <div class="html2pdf__page-break"></div>
                         <div style="padding: 20px; text-align: center;">
-                            <h2 style="margin-bottom: 20px;">Matriz de Risco (FQA)</h2>
+                            <h2 style="margin-bottom: 20px; font-size: 20px; font-weight: bold; color: #1e293b;">MATRIZ DE RISCO (Severidade x Probabilidade)</h2>
                             <img src="${imgFQA}" style="width: 100%; max-width: 700px;">
                         </div>
                     `;
