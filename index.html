@@ -366,14 +366,14 @@
         <!-- Header -->
         <header class="bg-slate-900 text-white p-4 shadow-md z-10 shrink-0" data-html2canvas-ignore="true">
             <!-- Badge de Versão (canto superior direito) -->
-            <div style="position: absolute; top: 5px; right: 5px; background: #10b981; color: white; padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; z-index: 9999;">
-                v1.5.3
+            <div style="position: absolute; top: 5px; right: 5px; background: #3b82f6; color: white; padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; z-index: 9999;">
+                v1.5.4-JS
             </div>
 
             <div class="flex justify-between items-center mb-3">
                 <div class="flex-1">
                     <h1 class="mobile-header-title text-xl font-bold tracking-tight">MATRIZ DE GESTÃO DE RISCOS DE SEGURANÇA DO TRABALHO</h1>
-                    <p class="mobile-header-subtitle text-xs text-slate-400">Metodologia Híbrida: Slack (Importância x Desempenho) & FQA (Severidade x Probabilidade) - versão 1.5.3 - 2025</p>
+                    <p class="mobile-header-subtitle text-xs text-slate-400">Metodologia Híbrida: Slack (Importância x Desempenho) & FQA (Severidade x Probabilidade) - versão 1.5.4-JS - 2025</p>
                 </div>
                 <div class="flex gap-2">
                     <button @click="carregarExemplos" class="mobile-btn mobile-show px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded text-sm transition border border-slate-600">
@@ -1768,6 +1768,63 @@
             }
         }).mount('#app');
     }
+</script>
+
+<!-- ====== FORÇAR LAYOUT RESPONSIVO VIA JAVASCRIPT ====== -->
+<script>
+    // Função para ajustar layout dinamicamente (forçar aproveitamento total da tela)
+    function forceResponsiveLayout() {
+        const isMobile = window.innerWidth <= 768;
+
+        if (isMobile) {
+            console.log('📱 Aplicando layout mobile otimizado via JavaScript...');
+
+            // Selecionar elementos
+            const chartsColumn = document.querySelector('.charts-column');
+            const tableColumn = document.querySelector('.table-column');
+            const chartContainers = document.querySelectorAll('.chart-box-container');
+
+            if (chartsColumn) {
+                // Remover altura fixa e permitir crescimento automático
+                chartsColumn.style.height = 'auto';
+                chartsColumn.style.maxHeight = 'none';
+                chartsColumn.style.overflowY = 'visible';
+                chartsColumn.style.padding = '0.35rem';
+                console.log('✅ Charts column ajustada');
+            }
+
+            if (tableColumn) {
+                // Calcular altura disponível (viewport - header - padding)
+                const headerHeight = document.querySelector('header')?.offsetHeight || 120;
+                const availableHeight = window.innerHeight - headerHeight - 20;
+                tableColumn.style.height = `${availableHeight}px`;
+                tableColumn.style.maxHeight = `${availableHeight}px`;
+                console.log(`✅ Table column altura: ${availableHeight}px`);
+            }
+
+            // Aumentar altura dos gráficos individualmente
+            chartContainers.forEach((container, index) => {
+                container.style.height = '500px'; // Aumentado para 500px
+                container.style.width = '100%';
+                container.style.maxWidth = '100%';
+                console.log(`✅ Chart ${index + 1} ajustado para 500px altura`);
+            });
+        }
+    }
+
+    // Executar ao carregar
+    window.addEventListener('load', () => {
+        setTimeout(forceResponsiveLayout, 500); // Aguardar Vue renderizar
+        console.log('🔄 Layout responsivo forçado!');
+    });
+
+    // Executar ao redimensionar
+    window.addEventListener('resize', forceResponsiveLayout);
+
+    // Executar quando Vue finalizar renderização
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(forceResponsiveLayout, 1000);
+    });
 </script>
 
 <!-- ====== REGISTRAR SERVICE WORKER PARA PWA ====== -->
