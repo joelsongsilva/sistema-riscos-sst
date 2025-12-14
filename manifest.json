@@ -2,21 +2,21 @@
   "name": "Sistema de Gestão de Riscos SST",
   "short_name": "Riscos SST",
   "description": "Matriz de Gestão de Riscos de Segurança do Trabalho - Metodologia Híbrida Slack + FQA",
-  "start_url": "/",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#0f172a",
-  "orientation": "portrait-primary",
-  "scope": "/",
+  "orientation": "any",
+  "scope": "./",
   "icons": [
     {
-      "src": "icon-192.png",
+      "src": "./icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "icon-512.png",
+      "src": "./icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
