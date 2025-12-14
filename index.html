@@ -192,11 +192,15 @@
             /* Mostrar botão de expansão */
             .mobile-expand-btn { display: inline-block; }
 
-            /* Header compacto */
+            /* Header compacto - REDUZIDO para economizar espaço */
             .mobile-header-title { font-size: 0.875rem !important; line-height: 1.2; }
             .mobile-header-subtitle { font-size: 0.65rem !important; }
             .mobile-btn { padding: 0.4rem 0.6rem !important; font-size: 0.7rem !important; }
             .mobile-hide { display: none !important; }
+
+            /* REDUZIR PADDING DO HEADER */
+            header { padding: 0.5rem !important; } /* Reduzido de p-4 (1rem) para 0.5rem */
+            header .mb-3 { margin-bottom: 0.5rem !important; } /* Reduzido de 0.75rem para 0.5rem */
 
             /* Container principal em coluna */
             .main-content {
@@ -204,54 +208,55 @@
                 overflow: visible !important;
             }
 
-            /* Gráficos: largura total e ALTURA MAIOR (260px → 340px) */
+            /* Gráficos: largura total e ALTURA MAIOR (260px → 340px) - PADDING REDUZIDO */
             .charts-column {
                 width: 100% !important;
                 border-right: none !important;
                 max-height: none !important;
-                padding: 0.5rem !important;
-                gap: 0.75rem !important;
+                padding: 0.35rem !important; /* REDUZIDO: 0.5rem → 0.35rem */
+                gap: 0.5rem !important; /* REDUZIDO: 0.75rem → 0.5rem */
             }
 
             .chart-card {
-                margin-bottom: 0.5rem !important;
-                padding: 0.5rem !important;
+                margin-bottom: 0.35rem !important; /* REDUZIDO: 0.5rem → 0.35rem */
+                padding: 0.35rem !important; /* REDUZIDO: 0.5rem → 0.35rem */
             }
 
-            .chart-title { font-size: 0.7rem !important; padding: 0.25rem 0.5rem !important; margin-bottom: 0.5rem !important; }
+            .chart-title { font-size: 0.7rem !important; padding: 0.25rem 0.35rem !important; margin-bottom: 0.35rem !important; } /* REDUZIDO */
 
-            /* AJUSTE: Altura 260px → 340px para melhor visualização */
+            /* AJUSTE: Altura 260px → 380px para melhor visualização + LARGURA TOTAL */
             .chart-box-container {
                 max-width: 100% !important;
-                height: 340px !important;
+                width: 100% !important; /* ADICIONADO: Aproveitar toda largura horizontal */
+                height: 380px !important; /* AUMENTADO: 340px → 380px */
                 aspect-ratio: auto !important;
             }
 
             /* Tabela: largura total e scroll CORRIGIDO para iOS */
             .table-column {
                 width: 100% !important;
-                height: calc(100vh - 200px) !important; /* Margem maior: 140px → 200px */
+                height: calc(100vh - 140px) !important; /* REDUZIDO: 200px → 140px (mais espaço vertical) */
                 overflow-y: auto !important; /* MUDADO: scroll → auto (melhor UX) */
                 -webkit-overflow-scrolling: touch !important;
-                padding-bottom: env(safe-area-inset-bottom, 80px) !important; /* iOS Safe Area */
+                padding-bottom: env(safe-area-inset-bottom, 20px) !important; /* iOS Safe Area - REDUZIDO: 80px → 20px */
             }
 
-            /* Formulário compacto */
-            .form-section { padding: 0.75rem !important; }
-            .form-title { font-size: 0.7rem !important; margin-bottom: 0.5rem !important; }
-            .form-grid { gap: 0.5rem !important; }
+            /* Formulário compacto - REDUZIDO padding */
+            .form-section { padding: 0.5rem !important; } /* REDUZIDO: 0.75rem → 0.5rem */
+            .form-title { font-size: 0.7rem !important; margin-bottom: 0.35rem !important; } /* REDUZIDO: 0.5rem → 0.35rem */
+            .form-grid { gap: 0.4rem !important; } /* REDUZIDO: 0.5rem → 0.4rem */
             .form-grid-cols { grid-template-columns: 1fr !important; }
-            .form-input { font-size: 0.75rem !important; padding: 0.4rem !important; }
+            .form-input { font-size: 0.75rem !important; padding: 0.35rem !important; } /* REDUZIDO: 0.4rem → 0.35rem */
             .form-label { font-size: 0.6rem !important; }
-            .slider-container { padding: 0.4rem !important; }
+            .slider-container { padding: 0.35rem !important; } /* REDUZIDO: 0.4rem → 0.35rem */
             .slider-value { font-size: 0.65rem !important; padding: 0.15rem 0.4rem !important; }
-            .form-btn { padding: 0.5rem 0.75rem !important; font-size: 0.75rem !important; }
+            .form-btn { padding: 0.45rem 0.65rem !important; font-size: 0.75rem !important; } /* REDUZIDO */
 
-            /* Tabela responsiva */
+            /* Tabela responsiva - REDUZIDO padding */
             .table-wrapper {
                 overflow-x: auto !important;
                 -webkit-overflow-scrolling: touch !important;
-                padding-bottom: 60px !important; /* Espaço extra para iOS */
+                padding-bottom: 20px !important; /* REDUZIDO: 60px → 20px (menos espaço desperdiçado) */
             }
             .data-table { min-width: 650px !important; font-size: 0.85rem !important; }
             .data-table th {
