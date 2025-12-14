@@ -1,4 +1,4 @@
-const CACHE_NAME = 'riscos-sst-v1.5.2-layout-optimized';
+const CACHE_NAME = 'riscos-sst-v1.5.3-full-height';
 const urlsToCache = [
   './',
   './index.html',
