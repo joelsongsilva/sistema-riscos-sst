@@ -90,8 +90,24 @@
             position: relative;
         }
 
-        th { font-size: 0.75rem; text-transform: uppercase; background-color: #f1f5f9; color: #475569; padding: 8px; border: 1px solid #e2e8f0; }
-        td { font-size: 0.8rem; padding: 6px 8px; border: 1px solid #e2e8f0; text-align: center; }
+        /* TABELA - DESKTOP: Fonte MAIOR e cores melhoradas */
+        th {
+            font-size: 0.95rem; /* Aumentado: 0.75rem → 0.95rem (≈15px) */
+            text-transform: uppercase;
+            background-color: #e2e8f0; /* Fundo mais escuro */
+            color: #1e293b; /* Texto mais escuro (azul escuro) */
+            font-weight: 700; /* Negrito mais forte */
+            padding: 10px 8px; /* Padding maior */
+            border: 1px solid #cbd5e1;
+        }
+        td {
+            font-size: 1.0rem; /* Aumentado: 0.8rem → 1.0rem (16px) */
+            padding: 8px 10px; /* Padding maior */
+            border: 1px solid #e2e8f0;
+            text-align: center;
+            color: #1f2937; /* Texto cinza escuro para melhor contraste */
+            font-weight: 500; /* Peso médio */
+        }
 
         canvas { touch-action: none; }
 
@@ -136,6 +152,26 @@
             color: #64748b;
             min-width: 40px;
             text-align: center;
+        }
+
+        /* ====== TAMANHO DOS GRÁFICOS NO DESKTOP: 50% ====== */
+        @media (min-width: 769px) {
+            .charts-column {
+                width: 50% !important;
+                min-width: 50% !important;
+                max-width: 50% !important;
+            }
+            .table-column {
+                width: 50% !important;
+                min-width: 50% !important;
+                max-width: 50% !important;
+            }
+        }
+
+        /* ====== SCROLL NO DESKTOP - FORÇAR APARECIMENTO ====== */
+        .table-column {
+            overflow-y: scroll !important; /* FORÇAR scroll sempre visível no desktop */
+            overflow-x: hidden;
         }
 
         /* ====== RESPONSIVIDADE MOBILE ====== */
@@ -204,9 +240,19 @@
                 -webkit-overflow-scrolling: touch !important;
                 padding-bottom: 60px !important; /* Espaço extra para iOS */
             }
-            .data-table { min-width: 650px !important; font-size: 0.7rem !important; }
-            .data-table th { padding: 4px 2px !important; font-size: 0.6rem !important; }
-            .data-table td { padding: 3px 2px !important; font-size: 0.68rem !important; }
+            .data-table { min-width: 650px !important; font-size: 0.85rem !important; }
+            .data-table th {
+                padding: 6px 4px !important;
+                font-size: 0.8rem !important; /* Aumentado: 0.6rem → 0.8rem */
+                font-weight: 700 !important;
+                color: #1e293b !important;
+            }
+            .data-table td {
+                padding: 5px 4px !important;
+                font-size: 0.85rem !important; /* Aumentado: 0.68rem → 0.85rem */
+                color: #1f2937 !important; /* Cor mais escura */
+                font-weight: 500 !important;
+            }
             .action-btn { padding: 2px 4px !important; font-size: 0.6rem !important; }
 
             /* TABS para mobile */
@@ -1098,19 +1144,19 @@
                 const groups = chart.data.customGroupedData;
                 const isSlack = chart.canvas.id === 'slackChart';
 
-                // Obter tamanho de fonte da configuração global
+                // Obter tamanho de fonte da configuração global (controlado pelos botões A-/A+)
                 const fontSize = chart.options.plugins.customFontSize || (window.innerWidth <= 768 ? 12 : 14);
 
                 ctx.save();
                 ctx.textAlign = 'left';
                 ctx.textBaseline = 'middle';
-                ctx.font = `bold ${fontSize}px Arial`; // AJUSTE: Tamanho dinâmico (12-14px)
+                ctx.font = `bold ${fontSize}px Arial`;
 
                 groups.forEach(g => {
                     const xPos = x.getPixelForValue(g.x), yPos = y.getPixelForValue(g.y);
                     const xOff = isSlack ? 0 : 0;
 
-                    let pointColor = '#000000'; // AJUSTE: Preto sólido para melhor contraste
+                    let pointColor = '#000000'; // Preto sólido
                     if (!isSlack) {
                         const level = getNivelRisco(g.x, g.y);
                         if (level === 'Crítico') pointColor = 'white';
@@ -1125,7 +1171,7 @@
                     ctx.fillStyle = pointColor;
                     ctx.strokeStyle = pointColor;
 
-                    const size = 6; ctx.lineWidth = 2.5; // X um pouco maior e mais visível
+                    const size = 6; ctx.lineWidth = 2.5;
                     ctx.beginPath();
                     ctx.moveTo(xPos + xOff - size, yPos - size); ctx.lineTo(xPos + xOff + size, yPos + size);
                     ctx.moveTo(xPos + xOff + size, yPos - size); ctx.lineTo(xPos + xOff - size, yPos + size);
@@ -1204,7 +1250,7 @@
                 const modoEdicao = ref(false);
                 const activeTab = ref('graficos');
                 const organizacao = ref('');
-                const fontSize = ref(window.innerWidth <= 768 ? 12 : 14); // Tamanho inicial: mobile 12px, desktop 14px
+                const fontSize = ref(window.innerWidth <= 768 ? 12 : 14); // Tamanho inicial (ajustável com botões A-/A+)
                 const fileInput = ref(null);
                 let slackChartInst = null, fqaChartInst = null;
 
