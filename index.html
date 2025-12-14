@@ -370,6 +370,11 @@
                 v1.5.4-JS
             </div>
 
+            <!-- Botão DEBUG (canto superior esquerdo) -->
+            <button onclick="showDebugInfo()" style="position: absolute; top: 5px; left: 5px; background: #f59e0b; color: white; padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; z-index: 9999; border: none; cursor: pointer;">
+                🔍 DEBUG
+            </button>
+
             <div class="flex justify-between items-center mb-3">
                 <div class="flex-1">
                     <h1 class="mobile-header-title text-xl font-bold tracking-tight">MATRIZ DE GESTÃO DE RISCOS DE SEGURANÇA DO TRABALHO</h1>
@@ -1809,6 +1814,9 @@
                 container.style.maxWidth = '100%';
                 console.log(`✅ Chart ${index + 1} ajustado para 500px altura`);
             });
+
+            // Marcar que o layout foi forçado
+            window.layoutForced = true;
         }
     }
 
@@ -1825,6 +1833,79 @@
     document.addEventListener('DOMContentLoaded', () => {
         setTimeout(forceResponsiveLayout, 1000);
     });
+
+    // ====== FUNÇÃO DEBUG PARA MOBILE ======
+    function showDebugInfo() {
+        const isMobile = window.innerWidth <= 768;
+        const chartsColumn = document.querySelector('.charts-column');
+        const tableColumn = document.querySelector('.table-column');
+        const chartContainers = document.querySelectorAll('.chart-box-container');
+        const header = document.querySelector('header');
+
+        // Coletar informações
+        const info = {
+            'Largura da Janela': `${window.innerWidth}px`,
+            'Altura da Janela': `${window.innerHeight}px`,
+            'Modo Detectado': isMobile ? '📱 MOBILE' : '🖥️ DESKTOP',
+            'Header Altura': header ? `${header.offsetHeight}px` : 'N/A',
+            'Charts Column Altura': chartsColumn ? `${chartsColumn.offsetHeight}px (style: ${chartsColumn.style.height})` : 'N/A',
+            'Charts Column Scroll': chartsColumn ? chartsColumn.style.overflowY || 'default' : 'N/A',
+            'Table Column Altura': tableColumn ? `${tableColumn.offsetHeight}px (style: ${tableColumn.style.height})` : 'N/A',
+            'Número de Gráficos': chartContainers.length,
+        };
+
+        // Adicionar info de cada gráfico
+        chartContainers.forEach((container, index) => {
+            info[`Gráfico ${index + 1} Altura`] = `${container.offsetHeight}px (style: ${container.style.height})`;
+        });
+
+        // Criar modal com as informações
+        const existingModal = document.getElementById('debug-modal');
+        if (existingModal) existingModal.remove();
+
+        const modal = document.createElement('div');
+        modal.id = 'debug-modal';
+        modal.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(15, 23, 42, 0.98);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            z-index: 99999;
+            max-width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            border: 2px solid #3b82f6;
+        `;
+
+        let html = '<div style="font-family: monospace; font-size: 11px;">';
+        html += '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 2px solid #3b82f6; padding-bottom: 10px;">';
+        html += '<strong style="font-size: 14px;">🔍 DEBUG INFO - v1.5.4-JS</strong>';
+        html += '<button onclick="document.getElementById(\'debug-modal\').remove()" style="background: #ef4444; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold;">✖ Fechar</button>';
+        html += '</div>';
+
+        for (const [key, value] of Object.entries(info)) {
+            const highlight = key.includes('Modo') ? 'background: #3b82f6; padding: 5px; border-radius: 4px;' : '';
+            html += `<div style="margin-bottom: 8px; ${highlight}"><strong>${key}:</strong> ${value}</div>`;
+        }
+
+        html += '<div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #475569; font-size: 10px; color: #94a3b8;">';
+        html += '<strong>Status do JavaScript:</strong><br>';
+        html += `- forceResponsiveLayout executado: ${window.layoutForced ? '✅ SIM' : '❌ NÃO'}<br>`;
+        html += `- Timestamp: ${new Date().toLocaleTimeString()}<br>`;
+        html += '</div>';
+
+        html += '</div>';
+        modal.innerHTML = html;
+        document.body.appendChild(modal);
+
+        // Marcar que a função foi chamada
+        console.log('🔍 DEBUG INFO exibido:', info);
+    }
 </script>
 
 <!-- ====== REGISTRAR SERVICE WORKER PARA PWA ====== -->
