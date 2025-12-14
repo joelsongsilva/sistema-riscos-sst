@@ -3,14 +3,80 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Gestão de Riscos (Slack + FQA) v1.5</title>
+    <title>Sistema de Gestão de Riscos (Slack + FQA) v1.5.1</title>
 
-    <!-- Bibliotecas -->
+    <!-- Bibliotecas com fallback CDNs -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js" onerror="loadVueFallback()"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" onerror="loadChartJsFallback()"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js" onerror="loadXlsxFallback()"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" onerror="loadHtml2PdfFallback()"></script>
+
+    <script>
+        // Fallback CDNs alternativas
+        function loadVueFallback() {
+            console.warn('Vue.js falhou no primeiro CDN, tentando CDN alternativo...');
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js';
+            script.onerror = () => alert('❌ Erro ao carregar Vue.js. Verifique sua conexão com a internet.');
+            document.head.appendChild(script);
+        }
+
+        function loadChartJsFallback() {
+            console.warn('Chart.js falhou no primeiro CDN, tentando CDN alternativo...');
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js';
+            script.onerror = () => alert('❌ Erro ao carregar Chart.js. Verifique sua conexão com a internet.');
+            document.head.appendChild(script);
+        }
+
+        function loadXlsxFallback() {
+            console.warn('XLSX falhou no primeiro CDN, tentando CDN alternativo...');
+            const script = document.createElement('script');
+            script.src = 'https://unpkg.com/xlsx@0.20.0/dist/xlsx.full.min.js';
+            script.onerror = () => alert('❌ Erro ao carregar XLSX. A exportação para Excel pode não funcionar.');
+            document.head.appendChild(script);
+        }
+
+        function loadHtml2PdfFallback() {
+            console.warn('html2pdf falhou no primeiro CDN, tentando CDN alternativo...');
+            const script = document.createElement('script');
+            script.src = 'https://unpkg.com/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js';
+            script.onerror = () => alert('❌ Erro ao carregar html2pdf. A exportação para PDF pode não funcionar.');
+            document.head.appendChild(script);
+        }
+
+        // Verificação de bibliotecas carregadas
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                const errors = [];
+
+                if (typeof Vue === 'undefined') {
+                    errors.push('Vue.js não carregado');
+                }
+                if (typeof Chart === 'undefined') {
+                    errors.push('Chart.js não carregado');
+                }
+                if (typeof XLSX === 'undefined') {
+                    errors.push('XLSX não carregado (Excel não funcionará)');
+                }
+                if (typeof html2pdf === 'undefined') {
+                    errors.push('html2pdf não carregado (PDF não funcionará)');
+                }
+
+                if (errors.length > 0) {
+                    const errorDiv = document.createElement('div');
+                    errorDiv.style.cssText = 'position: fixed; top: 10px; left: 50%; transform: translateX(-50%); background: #fee; border: 2px solid #f00; padding: 15px; border-radius: 8px; z-index: 9999; max-width: 90%; text-align: center;';
+                    errorDiv.innerHTML = `
+                        <strong>⚠️ Erro ao carregar bibliotecas:</strong><br>
+                        ${errors.join('<br>')}<br>
+                        <small>Verifique sua conexão com a internet e recarregue a página.</small>
+                    `;
+                    document.body.appendChild(errorDiv);
+                }
+            }, 3000); // Aguardar 3 segundos para garantir que as bibliotecas carregaram
+        });
+    </script>
 
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
@@ -194,18 +260,49 @@
                 .mobile-btn.mobile-show { display: inline-block !important; }
             }
         }
+
+        /* Loading spinner */
+        #loading-spinner {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 9999;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body class="h-screen overflow-hidden flex flex-col">
 
-    <div id="app" class="flex flex-col h-full">
+    <!-- Loading Spinner -->
+    <div id="loading-spinner">
+        <div class="spinner"></div>
+        <p>Carregando aplicação...</p>
+    </div>
+
+    <div id="app" class="flex flex-col h-full" style="display: none;">
 
         <!-- Header -->
         <header class="bg-slate-900 text-white p-4 shadow-md z-10 shrink-0" data-html2canvas-ignore="true">
             <div class="flex justify-between items-center mb-3">
                 <div class="flex-1">
                     <h1 class="mobile-header-title text-xl font-bold tracking-tight">MATRIZ DE GESTÃO DE RISCOS DE SEGURANÇA DO TRABALHO</h1>
-                    <p class="mobile-header-subtitle text-xs text-slate-400">Metodologia Híbrida: Slack (Importância x Desempenho) & FQA (Severidade x Probabilidade) - versão 1.5 - 2025</p>
+                    <p class="mobile-header-subtitle text-xs text-slate-400">Metodologia Híbrida: Slack (Importância x Desempenho) & FQA (Severidade x Probabilidade) - versão 1.5.1 - 2025</p>
                 </div>
                 <div class="flex gap-2">
                     <button @click="carregarExemplos" class="mobile-btn mobile-show px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded text-sm transition border border-slate-600">
@@ -378,10 +475,31 @@
     </div>
 
 <script>
-    const { createApp, ref, computed, onMounted } = Vue;
+    // Aguardar carregamento de todas as bibliotecas
+    window.addEventListener('load', function() {
+        // Verificar se todas as bibliotecas estão disponíveis
+        if (typeof Vue === 'undefined') {
+            alert('❌ Erro: Vue.js não foi carregado. Recarregue a página.');
+            return;
+        }
+        if (typeof Chart === 'undefined') {
+            alert('❌ Erro: Chart.js não foi carregado. Recarregue a página.');
+            return;
+        }
 
-    // --- DADOS BRUTOS (CSV) ---
-    const rawDataStr = `1	1	3.3	4.353455
+        // Remover loading spinner e mostrar app
+        document.getElementById('loading-spinner').style.display = 'none';
+        document.getElementById('app').style.display = 'flex';
+
+        // Iniciar aplicação Vue
+        initApp();
+    });
+
+    function initApp() {
+        const { createApp, ref, computed, onMounted } = Vue;
+
+        // --- DADOS BRUTOS (CSV) ---
+        const rawDataStr = `1	1	3.3	4.353455
 1.016032064	1	3.306212425	4.353579773
 1.032064128	1	3.31242485	4.353750908
 1.048096192	1	3.318637275	4.353968659
@@ -881,660 +999,648 @@
 8.98397	3.630439	6.393788	9
 9	3.631244	6.4	9`;
 
-    // --- 2. CONFIGURAÇÕES & MAPS ---
-    const MAP_IMP_SEV = { 1:5, 2:5, 3:4, 4:4, 5:3, 6:2, 7:2, 8:1, 9:1 };
-    const MAP_DES_PROB = { 1:1, 2:1, 3:2, 4:2, 5:3, 6:4, 7:5, 8:5, 9:5 };
+        // --- 2. CONFIGURAÇÕES & MAPS ---
+        const MAP_IMP_SEV = { 1:5, 2:5, 3:4, 4:4, 5:3, 6:2, 7:2, 8:1, 9:1 };
+        const MAP_DES_PROB = { 1:1, 2:1, 3:2, 4:2, 5:3, 6:4, 7:5, 8:5, 9:5 };
 
-    const MAP_SEV_DESC = {
-        1: "Lesão muito leve",
-        2: "Lesão leve",
-        3: "Lesão leve",
-        4: "Lesão moderada",
-        5: "Lesão crítica ou fatal"
-    };
-    const MAP_PROB_DESC = {
-        1: "Altamente improvável",
-        2: "Improvável",
-        3: "Possível",
-        4: "Provável",
-        5: "Muito provável"
-    };
+        const MAP_SEV_DESC = {
+            1: "Lesão muito leve",
+            2: "Lesão leve",
+            3: "Lesão leve",
+            4: "Lesão moderada",
+            5: "Lesão crítica ou fatal"
+        };
+        const MAP_PROB_DESC = {
+            1: "Altamente improvável",
+            2: "Improvável",
+            3: "Possível",
+            4: "Provável",
+            5: "Muito provável"
+        };
 
-    const COLOR_EXCESSO = 'rgba(209, 213, 219, 0.5)';
-    const COLOR_ADEQUADO = 'rgba(187, 247, 208, 0.5)';
-    const COLOR_MELHORIA = 'rgba(253, 230, 138, 0.5)';
-    const COLOR_URGENTE  = 'rgba(254, 202, 202, 0.5)';
-    const COLORS_FQA = { 'Irrelevante': '#C5E0B5', 'Baixo': '#92D14F', 'Moderado': '#FEFF00', 'Alto': '#FFBF01', 'Crítico': '#FE0000' };
+        const COLOR_EXCESSO = 'rgba(209, 213, 219, 0.5)';
+        const COLOR_ADEQUADO = 'rgba(187, 247, 208, 0.5)';
+        const COLOR_MELHORIA = 'rgba(253, 230, 138, 0.5)';
+        const COLOR_URGENTE  = 'rgba(254, 202, 202, 0.5)';
+        const COLORS_FQA = { 'Irrelevante': '#C5E0B5', 'Baixo': '#92D14F', 'Moderado': '#FEFF00', 'Alto': '#FFBF01', 'Crítico': '#FE0000' };
 
-    const getNivelRisco = (s, p) => {
-        const m = { "1,1": "Irrelevante", "1,2": "Baixo", "1,3": "Baixo", "1,4": "Moderado", "1,5": "Moderado", "2,1": "Baixo", "2,2": "Baixo", "2,3": "Moderado", "2,4": "Moderado", "2,5": "Alto", "3,1": "Baixo", "3,2": "Moderado", "3,3": "Moderado", "3,4": "Alto", "3,5": "Alto", "4,1": "Baixo", "4,2": "Moderado", "4,3": "Moderado", "4,4": "Alto", "4,5": "Crítico", "5,1": "Moderado", "5,2": "Moderado", "5,3": "Alto", "5,4": "Crítico", "5,5": "Crítico" };
-        return m[`${s},${p}`] || "Indefinido";
-    };
+        const getNivelRisco = (s, p) => {
+            const m = { "1,1": "Irrelevante", "1,2": "Baixo", "1,3": "Baixo", "1,4": "Moderado", "1,5": "Moderado", "2,1": "Baixo", "2,2": "Baixo", "2,3": "Moderado", "2,4": "Moderado", "2,5": "Alto", "3,1": "Baixo", "3,2": "Moderado", "3,3": "Moderado", "3,4": "Alto", "3,5": "Alto", "4,1": "Baixo", "4,2": "Moderado", "4,3": "Moderado", "4,4": "Alto", "4,5": "Crítico", "5,1": "Moderado", "5,2": "Moderado", "5,3": "Alto", "5,4": "Crítico", "5,5": "Crítico" };
+            return m[`${s},${p}`] || "Indefinido";
+        };
 
-    const processData = () => {
-        const lines = rawDataStr.trim().split('\n');
-        const dataSup = [], dataMid = [], dataInf = [];
+        const processData = () => {
+            const lines = rawDataStr.trim().split('\n');
+            const dataSup = [], dataMid = [], dataInf = [];
 
-        // FÓRMULA AJUSTADA (v1.5) - Curva Superior
-        const slackSupFormula = (x) => Math.max(1, 0.097044*Math.pow(x,3) - 2.473159*Math.pow(x,2) + 20.987723*x - 55.677460);
+            // FÓRMULA AJUSTADA (v1.5) - Curva Superior
+            const slackSupFormula = (x) => Math.max(1, 0.097044*Math.pow(x,3) - 2.473159*Math.pow(x,2) + 20.987723*x - 55.677460);
 
-        lines.forEach(line => {
-            const parts = line.split(/\t|\s+/); if(parts.length < 4) return;
-            const x = parseFloat(parts[0]);
+            lines.forEach(line => {
+                const parts = line.split(/\t|\s+/); if(parts.length < 4) return;
+                const x = parseFloat(parts[0]);
 
-            dataSup.push({x, y: slackSupFormula(x)});
-            dataMid.push({x, y: parseFloat(parts[2])});
-            dataInf.push({x, y: parseFloat(parts[3])});
-        });
-        return { dataSup, dataMid, dataInf };
-    };
-    const { dataSup, dataMid, dataInf } = processData();
-
-    // --- PLUGINS ---
-
-    const fqaBackgroundPlugin = {
-        id: 'fqaBackground',
-        beforeDraw: (chart) => {
-            if (chart.config.options.plugins.fqaBackground === false) return;
-            const { ctx, scales: { x, y }, chartArea: { left, bottom, top } } = chart;
-
-            for (let s = 1; s <= 5; s++) {
-                for (let p = 1; p <= 5; p++) {
-                    const color = COLORS_FQA[getNivelRisco(s, p)];
-                    const xS = x.getPixelForValue(s - 0.5), xE = x.getPixelForValue(s + 0.5);
-                    const yS = y.getPixelForValue(p - 0.5), yE = y.getPixelForValue(p + 0.5);
-                    ctx.fillStyle = color; ctx.fillRect(xS, yS, xE - xS, yE - yS);
-                    ctx.strokeStyle = "white"; ctx.lineWidth = 1; ctx.strokeRect(xS, yS, xE - xS, yE - yS);
-                }
-            }
-
-            ctx.save();
-            ctx.fillStyle = '#374151';
-            ctx.font = 'bold 18px Inter, sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'top';
-
-            // Eixo X
-            for (let i = 1; i <= 5; i++) {
-                const xVal = x.getPixelForValue(i);
-                ctx.fillText(i, xVal, bottom + 10);
-            }
-
-            // Eixo Y
-            ctx.textAlign = 'right';
-            ctx.textBaseline = 'middle';
-            for (let i = 1; i <= 5; i++) {
-                const yVal = y.getPixelForValue(i);
-                ctx.fillText(i, left - 10, yVal);
-            }
-            ctx.restore();
-        }
-    };
-
-    const customPointsPlugin = {
-        id: 'customPoints',
-        afterDatasetsDraw: (chart) => {
-            const { ctx, scales: { x, y } } = chart;
-            const meta = chart.getDatasetMeta(chart.data.datasets.length - 1);
-            if (meta.hidden || !chart.data.customGroupedData) return;
-            const groups = chart.data.customGroupedData;
-            const isSlack = chart.canvas.id === 'slackChart';
-
-            // Obter tamanho de fonte da configuração global
-            const fontSize = chart.options.plugins.customFontSize || (window.innerWidth <= 768 ? 12 : 14);
-
-            ctx.save();
-            ctx.textAlign = 'left';
-            ctx.textBaseline = 'middle';
-            ctx.font = `bold ${fontSize}px Arial`; // AJUSTE: Tamanho dinâmico (12-14px)
-
-            groups.forEach(g => {
-                const xPos = x.getPixelForValue(g.x), yPos = y.getPixelForValue(g.y);
-                const xOff = isSlack ? 0 : 0;
-
-                let pointColor = '#000000'; // AJUSTE: Preto sólido para melhor contraste
-                if (!isSlack) {
-                    const level = getNivelRisco(g.x, g.y);
-                    if (level === 'Crítico') pointColor = 'white';
-                }
-
-                // Text shadow para melhor legibilidade
-                ctx.shadowColor = pointColor === 'white' ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.8)';
-                ctx.shadowBlur = 3;
-                ctx.shadowOffsetX = 1;
-                ctx.shadowOffsetY = 1;
-
-                ctx.fillStyle = pointColor;
-                ctx.strokeStyle = pointColor;
-
-                const size = 6; ctx.lineWidth = 2.5; // X um pouco maior e mais visível
-                ctx.beginPath();
-                ctx.moveTo(xPos + xOff - size, yPos - size); ctx.lineTo(xPos + xOff + size, yPos + size);
-                ctx.moveTo(xPos + xOff + size, yPos - size); ctx.lineTo(xPos + xOff - size, yPos + size);
-                ctx.stroke();
-
-                if (isSlack) {
-                    const text = g.ids.join('; ');
-                    if (g.x <= 1.2) { ctx.textAlign = 'right'; ctx.fillText(text, xPos - 10, yPos); }
-                    else { ctx.textAlign = 'left'; ctx.fillText(text, xPos + 10, yPos); }
-                } else {
-                    ctx.textBaseline = 'top';
-                    let textY = yPos - ((g.ids.length * (fontSize + 2)) / 2); // Espaçamento adaptativo
-                    g.ids.forEach((id, i) => ctx.fillText(id, xPos + 8, textY + (i * (fontSize + 2))));
-                }
+                dataSup.push({x, y: slackSupFormula(x)});
+                dataMid.push({x, y: parseFloat(parts[2])});
+                dataInf.push({x, y: parseFloat(parts[3])});
             });
+            return { dataSup, dataMid, dataInf };
+        };
+        const { dataSup, dataMid, dataInf } = processData();
 
-            // Resetar shadow
-            ctx.shadowColor = 'transparent';
-            ctx.shadowBlur = 0;
-            ctx.restore();
-        }
-    };
+        // --- PLUGINS ---
 
-    const slackOverlayPlugin = {
-        id: 'slackOverlay',
-        afterDraw: (chart) => {
-            if (chart.config.options.plugins.slackOverlay === false) return;
-            const { ctx, scales: { x, y }, chartArea: { left, right, top, bottom } } = chart;
+        const fqaBackgroundPlugin = {
+            id: 'fqaBackground',
+            beforeDraw: (chart) => {
+                if (chart.config.options.plugins.fqaBackground === false) return;
+                const { ctx, scales: { x, y }, chartArea: { left, bottom, top } } = chart;
 
-            const isMobile = window.innerWidth <= 768;
-            const labelSize = isMobile ? 10 : 16;
-            const axisSize = isMobile ? 9 : 14;
+                for (let s = 1; s <= 5; s++) {
+                    for (let p = 1; p <= 5; p++) {
+                        const color = COLORS_FQA[getNivelRisco(s, p)];
+                        const xS = x.getPixelForValue(s - 0.5), xE = x.getPixelForValue(s + 0.5);
+                        const yS = y.getPixelForValue(p - 0.5), yE = y.getPixelForValue(p + 0.5);
+                        ctx.fillStyle = color; ctx.fillRect(xS, yS, xE - xS, yE - yS);
+                        ctx.strokeStyle = "white"; ctx.lineWidth = 1; ctx.strokeRect(xS, yS, xE - xS, yE - yS);
+                    }
+                }
 
-            const drawText = (text, xVal, yVal, color='#374151', rot=0) => {
-                ctx.save(); ctx.translate(x.getPixelForValue(xVal), y.getPixelForValue(yVal));
-                ctx.rotate(rot * Math.PI / 180); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                ctx.fillStyle = color; ctx.font = `bold ${labelSize}px Inter, sans-serif`; ctx.fillText(text, 0, 0); ctx.restore();
-            };
-            drawText("Excesso?", 7.5, 1.5); drawText("Adequado", 5.5, 3.5);
-            drawText(isMobile ? "Front. Inf. Aceit." : "Fronteira Inferior de Aceitabilidade", 6, 4.85, '#4b5563', -22);
-            drawText("Melhoria", 7, 6.5); drawText(isMobile ? "Ação Urg." : "Ação Urgente", 3, 8);
+                ctx.save();
+                ctx.fillStyle = '#374151';
+                ctx.font = 'bold 18px Inter, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'top';
 
-            ctx.save(); ctx.font = `bold ${axisSize}px Inter, sans-serif`; ctx.fillStyle = '#374151';
-            const yAxisPos = bottom + (isMobile ? 30 : 45);
-            ctx.textAlign = 'center'; ctx.fillText("IMPORTÂNCIA", (left + right) / 2, yAxisPos);
-            if (!isMobile) {
-                ctx.textAlign = 'left'; ctx.fillText("BAIXA   <----------------------------------", left, yAxisPos);
-                ctx.textAlign = 'right'; ctx.fillText("---------------------------------->   ALTA", right, yAxisPos);
+                // Eixo X
+                for (let i = 1; i <= 5; i++) {
+                    const xVal = x.getPixelForValue(i);
+                    ctx.fillText(i, xVal, bottom + 10);
+                }
+
+                // Eixo Y
+                ctx.textAlign = 'right';
+                ctx.textBaseline = 'middle';
+                for (let i = 1; i <= 5; i++) {
+                    const yVal = y.getPixelForValue(i);
+                    ctx.fillText(i, left - 10, yVal);
+                }
+                ctx.restore();
             }
-            const xAxisPos = left - (isMobile ? 30 : 45);
-            ctx.translate(xAxisPos, (top + bottom) / 2); ctx.rotate(-Math.PI / 2);
-            ctx.textAlign = 'center'; ctx.fillText("DESEMPENHO", 0, 0);
-            if (!isMobile) {
-                ctx.textAlign = 'left'; ctx.fillText("RUIM   <----------------------------------", -((bottom - top) / 2), 0);
-                ctx.textAlign = 'right'; ctx.fillText("---------------------------------->   BOM", ((bottom - top) / 2), 0);
+        };
+
+        const customPointsPlugin = {
+            id: 'customPoints',
+            afterDatasetsDraw: (chart) => {
+                const { ctx, scales: { x, y } } = chart;
+                const meta = chart.getDatasetMeta(chart.data.datasets.length - 1);
+                if (meta.hidden || !chart.data.customGroupedData) return;
+                const groups = chart.data.customGroupedData;
+                const isSlack = chart.canvas.id === 'slackChart';
+
+                // Obter tamanho de fonte da configuração global
+                const fontSize = chart.options.plugins.customFontSize || (window.innerWidth <= 768 ? 12 : 14);
+
+                ctx.save();
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'middle';
+                ctx.font = `bold ${fontSize}px Arial`; // AJUSTE: Tamanho dinâmico (12-14px)
+
+                groups.forEach(g => {
+                    const xPos = x.getPixelForValue(g.x), yPos = y.getPixelForValue(g.y);
+                    const xOff = isSlack ? 0 : 0;
+
+                    let pointColor = '#000000'; // AJUSTE: Preto sólido para melhor contraste
+                    if (!isSlack) {
+                        const level = getNivelRisco(g.x, g.y);
+                        if (level === 'Crítico') pointColor = 'white';
+                    }
+
+                    // Text shadow para melhor legibilidade
+                    ctx.shadowColor = pointColor === 'white' ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.8)';
+                    ctx.shadowBlur = 3;
+                    ctx.shadowOffsetX = 1;
+                    ctx.shadowOffsetY = 1;
+
+                    ctx.fillStyle = pointColor;
+                    ctx.strokeStyle = pointColor;
+
+                    const size = 6; ctx.lineWidth = 2.5; // X um pouco maior e mais visível
+                    ctx.beginPath();
+                    ctx.moveTo(xPos + xOff - size, yPos - size); ctx.lineTo(xPos + xOff + size, yPos + size);
+                    ctx.moveTo(xPos + xOff + size, yPos - size); ctx.lineTo(xPos + xOff - size, yPos + size);
+                    ctx.stroke();
+
+                    if (isSlack) {
+                        const text = g.ids.join('; ');
+                        if (g.x <= 1.2) { ctx.textAlign = 'right'; ctx.fillText(text, xPos - 10, yPos); }
+                        else { ctx.textAlign = 'left'; ctx.fillText(text, xPos + 10, yPos); }
+                    } else {
+                        ctx.textBaseline = 'top';
+                        let textY = yPos - ((g.ids.length * (fontSize + 2)) / 2); // Espaçamento adaptativo
+                        g.ids.forEach((id, i) => ctx.fillText(id, xPos + 8, textY + (i * (fontSize + 2))));
+                    }
+                });
+
+                // Resetar shadow
+                ctx.shadowColor = 'transparent';
+                ctx.shadowBlur = 0;
+                ctx.restore();
             }
-            ctx.restore();
-        }
-    };
+        };
 
-    const slackBgPlugin = {
-        id: 'slackBg',
-        beforeDraw: (chart) => {
-            if (chart.canvas.id !== 'slackChart') return;
-            const { ctx, chartArea: { left, top, width, height } } = chart;
-            ctx.save(); ctx.fillStyle = COLOR_EXCESSO; ctx.fillRect(left, top, width, height); ctx.restore();
-        }
-    };
+        const slackOverlayPlugin = {
+            id: 'slackOverlay',
+            afterDraw: (chart) => {
+                if (chart.config.options.plugins.slackOverlay === false) return;
+                const { ctx, scales: { x, y }, chartArea: { left, right, top, bottom } } = chart;
 
-    Chart.register(fqaBackgroundPlugin, customPointsPlugin, slackOverlayPlugin, slackBgPlugin);
-
-    createApp({
-        setup() {
-            const riscos = ref([]);
-            const form = ref({ id: 1, rubrica: '', imp: 5, des: 5 });
-            const modoEdicao = ref(false);
-            const activeTab = ref('graficos');
-            const organizacao = ref('');
-            const fontSize = ref(window.innerWidth <= 768 ? 12 : 14); // Tamanho inicial: mobile 12px, desktop 14px
-            const fileInput = ref(null);
-            let slackChartInst = null, fqaChartInst = null;
-
-            const calcularRisco = (r) => {
-                const findY = (arr, xVal) => { const p = arr.find(p => Math.abs(p.x - xVal) < 0.05); return p ? p.y : 9; };
-                const yInf = findY(dataInf, r.imp); const ySup = findY(dataSup, r.imp); const yMid = findY(dataMid, r.imp);
-                let diag = "";
-                if (r.des > yInf) diag = "Ação Urgente"; else if (r.des > yMid) diag = "Melhoria"; else if (r.des > ySup) diag = "Adequado"; else diag = "Excesso?";
-                const sev = MAP_IMP_SEV[r.imp], prob = MAP_DES_PROB[r.des];
-                return { ...r, diagSlack: diag, sev, prob, descSev: MAP_SEV_DESC[sev], descProb: MAP_PROB_DESC[prob], nivelRisco: getNivelRisco(sev, prob) };
-            };
-            const riscosOrdenados = computed(() => [...riscos.value].map(calcularRisco).sort((a,b) => a.id - b.id));
-
-            const agruparRiscos = (dados, tipo) => {
-                const groups = {};
-                dados.forEach(r => {
-                    const key = tipo === 'slack' ? `${r.imp}-${r.des}` : `${r.sev}-${r.prob}`;
-                    if(!groups[key]) groups[key] = { x: tipo==='slack'?r.imp:r.sev, y: tipo==='slack'?r.des:r.prob, ids: [] };
-                    groups[key].ids.push(r.id);
-                });
-                return Object.values(groups);
-            };
-
-            const adicionarRisco = () => {
-                if(!modoEdicao.value && riscos.value.some(r => r.id === form.value.id)) return alert("ID duplicado");
-                if(modoEdicao.value) { const idx = riscos.value.findIndex(r => r.id === form.value.id); if(idx !== -1) riscos.value[idx] = { ...form.value }; modoEdicao.value = false; }
-                else { riscos.value.push({ ...form.value }); form.value.id++; }
-                form.value.rubrica = ''; form.value.imp = 5; form.value.des = 5;
-                salvarLocalStorage();
-                atualizarGraficos();
-            };
-
-            const editarRisco = (r) => { form.value = { ...r }; modoEdicao.value = true; };
-            const cancelarEdicao = () => { modoEdicao.value = false; form.value.id = riscos.value.length > 0 ? Math.max(...riscos.value.map(r=>r.id))+1 : 1; form.value.rubrica=''; };
-            const excluirRisco = (id) => { riscos.value = riscos.value.filter(r => r.id !== id); salvarLocalStorage(); atualizarGraficos(); };
-
-            const carregarExemplos = () => {
-                riscos.value = [
-                    { id: 1, rubrica: 'As zonas de trabalho', imp: 5, des: 4 },
-                    { id: 2, rubrica: 'A organização técnica entre postos', imp: 1, des: 3 },
-                    { id: 3, rubrica: 'Os locais de trabalho', imp: 3, des: 6 },
-                    { id: 4, rubrica: 'Os riscos de acidentes', imp: 2, des: 5 },
-                    { id: 5, rubrica: 'Os comandos e sinais', imp: 5, des: 7 },
-                    { id: 6, rubrica: 'As ferramentas e material de trabalho', imp: 4, des: 6 },
-                    { id: 7, rubrica: 'O trabalho repetitivo', imp: 3, des: 2 },
-                    { id: 8, rubrica: 'Os manuseios / levantamento de peso', imp: 2, des: 5 },
-                    { id: 9, rubrica: 'A carga mental', imp: 1, des: 7 },
-                    { id: 10, rubrica: 'A iluminação', imp: 3, des: 3 },
-                    { id: 11, rubrica: 'O ruído', imp: 2, des: 8 },
-                    { id: 12, rubrica: 'Os ambientes térmicos', imp: 5, des: 9 },
-                    { id: 13, rubrica: 'Os riscos químicos e biológicos', imp: 4, des: 4 },
-                    { id: 14, rubrica: 'As vibrações', imp: 5, des: 5 },
-                    { id: 15, rubrica: 'As rel de trabalho entre trabalhadores', imp: 6, des: 6 },
-                    { id: 16, rubrica: 'O ambiente social local e geral', imp: 7, des: 7 },
-                    { id: 17, rubrica: 'O conteúdo do trabalho', imp: 2, des: 7 },
-                    { id: 18, rubrica: 'O ambiente psicossocial', imp: 7, des: 8 }
-                ];
-                salvarLocalStorage();
-                atualizarGraficos();
-            };
-
-            // NOVA FUNÇÃO: Limpar tudo
-            const limparTudo = () => {
-                if(confirm('⚠️ Tem certeza que deseja apagar TODOS os dados?\n\nEsta ação não pode ser desfeita.')) {
-                    riscos.value = [];
-                    form.value = { id: 1, rubrica: '', imp: 5, des: 5 };
-                    modoEdicao.value = false;
-                    localStorage.removeItem('riscos-sst');
-                    localStorage.removeItem('organizacao-sst');
-                    organizacao.value = '';
-                    atualizarGraficos();
-                    alert('✅ Todos os dados foram removidos!');
-                }
-            };
-
-            // NOVA FUNÇÃO: Salvar dados em arquivo JSON
-            const salvarDados = () => {
-                const dataAtual = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-                const dadosExportar = {
-                    versao: '1.5',
-                    data: dataAtual,
-                    organizacao: organizacao.value || '',
-                    riscos: riscos.value
-                };
-
-                const blob = new Blob([JSON.stringify(dadosExportar, null, 2)], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `riscos-sst-${dataAtual}.json`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-
-                alert('✅ Dados salvos com sucesso!');
-            };
-
-            // NOVA FUNÇÃO: Trigger para input file
-            const triggerImport = () => {
-                fileInput.value.click();
-            };
-
-            // NOVA FUNÇÃO: Importar dados de arquivo JSON
-            const importarDados = (event) => {
-                const file = event.target.files[0];
-                if (!file) return;
-
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    try {
-                        const dados = JSON.parse(e.target.result);
-
-                        // Validação básica
-                        if (!dados.riscos || !Array.isArray(dados.riscos)) {
-                            throw new Error('Arquivo inválido: não contém dados de riscos.');
-                        }
-
-                        // Confirmar antes de sobrescrever
-                        if (riscos.value.length > 0) {
-                            if (!confirm('⚠️ Existem dados cadastrados. Deseja substituí-los pelos dados do arquivo?')) {
-                                event.target.value = ''; // Limpar input
-                                return;
-                            }
-                        }
-
-                        // Carregar dados
-                        riscos.value = dados.riscos;
-                        organizacao.value = dados.organizacao || '';
-
-                        salvarLocalStorage();
-                        atualizarGraficos();
-                        alert(`✅ Dados importados com sucesso!\n\n${dados.riscos.length} riscos carregados.`);
-
-                    } catch (error) {
-                        alert(`❌ Erro ao importar arquivo:\n\n${error.message}`);
-                    }
-
-                    event.target.value = ''; // Limpar input
-                };
-                reader.readAsText(file);
-            };
-
-            // NOVA FUNÇÃO: Aumentar tamanho da fonte
-            const aumentarFonte = () => {
-                if (fontSize.value < 20) {
-                    fontSize.value += 2;
-                    localStorage.setItem('fontSize-graficos', fontSize.value);
-                    atualizarGraficos();
-                }
-            };
-
-            // NOVA FUNÇÃO: Diminuir tamanho da fonte
-            const diminuirFonte = () => {
-                if (fontSize.value > 8) {
-                    fontSize.value -= 2;
-                    localStorage.setItem('fontSize-graficos', fontSize.value);
-                    atualizarGraficos();
-                }
-            };
-
-            // NOVA FUNÇÃO: Salvar no localStorage
-            const salvarLocalStorage = () => {
-                localStorage.setItem('riscos-sst', JSON.stringify(riscos.value));
-                localStorage.setItem('organizacao-sst', organizacao.value);
-            };
-
-            // NOVA FUNÇÃO: Carregar do localStorage
-            const carregarLocalStorage = () => {
-                const riscosStorage = localStorage.getItem('riscos-sst');
-                const orgStorage = localStorage.getItem('organizacao-sst');
-                const fontStorage = localStorage.getItem('fontSize-graficos');
-
-                if (riscosStorage) {
-                    try {
-                        riscos.value = JSON.parse(riscosStorage);
-                    } catch (e) {
-                        console.error('Erro ao carregar riscos do localStorage:', e);
-                    }
-                }
-
-                if (orgStorage) {
-                    organizacao.value = orgStorage;
-                }
-
-                if (fontStorage) {
-                    fontSize.value = parseInt(fontStorage);
-                }
-            };
-
-            const exportarExcel = () => {
-                const wb = XLSX.utils.book_new();
-
-                const data = riscosOrdenados.value.map(r => ({
-                    "ID": r.id,
-                    "Rubrica": r.rubrica,
-                    "Imp": r.imp,
-                    "Des": r.des,
-                    "Diag (Slack)": r.diagSlack,
-                    "Sev": r.sev,
-                    "Desc. Sev": r.descSev,
-                    "Prob": r.prob,
-                    "Desc. Prob": r.descProb,
-                    "Nível de Risco": r.nivelRisco
-                }));
-
-                const dataAtual = new Date().toLocaleDateString('pt-BR');
-                const orgText = organizacao.value ? organizacao.value : '(Não informado)';
-                data.push({
-                    "ID": `Dados exportados em ${dataAtual}`,
-                    "Rubrica": orgText,
-                    "Imp": "", "Des": "", "Diag (Slack)": "", "Sev": "", "Desc. Sev": "", "Prob": "", "Desc. Prob": "", "Nível de Risco": ""
-                });
-
-                const ws = XLSX.utils.json_to_sheet(data);
-                ws['!cols'] = [
-                    { wch: 5 }, { wch: 35 }, { wch: 5 }, { wch: 5 }, { wch: 15 },
-                    { wch: 5 }, { wch: 20 }, { wch: 5 }, { wch: 20 }, { wch: 15 }
-                ];
-
-                const range = XLSX.utils.decode_range(ws['!ref']);
-                for (let R = range.s.r; R <= range.e.r; ++R) {
-                    for (let C = range.s.c; C <= range.e.c; ++C) {
-                        const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
-                        if (!ws[cellAddress]) continue;
-                        if (!ws[cellAddress].s) ws[cellAddress].s = {};
-                        ws[cellAddress].s.border = {
-                            top: { style: 'thin', color: { rgb: '000000' } },
-                            bottom: { style: 'thin', color: { rgb: '000000' } },
-                            left: { style: 'thin', color: { rgb: '000000' } },
-                            right: { style: 'thin', color: { rgb: '000000' } }
-                        };
-                        if (R === 0) {
-                            ws[cellAddress].s.fill = { fgColor: { rgb: '4472C4' } };
-                            ws[cellAddress].s.font = { bold: true, color: { rgb: 'FFFFFF' } };
-                            ws[cellAddress].s.alignment = { horizontal: 'center', vertical: 'center' };
-                        }
-                        if (R === range.e.r) {
-                            ws[cellAddress].s.font = { bold: true };
-                        }
-                    }
-                }
-
-                XLSX.utils.book_append_sheet(wb, ws, "Riscos");
-                XLSX.writeFile(wb, "Gestao_Riscos_SST.xlsx");
-            };
-
-            const exportarPDF = () => {
-                const element = document.createElement('div');
-                element.style.width = '100%';
-
-                const headerHtml = `
-                    <div style="padding: 20px;">
-                        <h1 style="font-size: 24px; font-weight: bold; text-align: center; margin-bottom: 10px;">RELATÓRIO DE ANÁLISE DE RISCOS</h1>
-                        <p style="text-align: center; color: #666; margin-bottom: 20px;">Data: ${new Date().toLocaleDateString()}</p>
-                        <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
-                            <thead style="background-color: #f1f5f9;">
-                                <tr>
-                                    <th style="border: 1px solid #ccc; padding: 5px;">ID</th>
-                                    <th style="border: 1px solid #ccc; padding: 5px;">Rubrica</th>
-                                    <th style="border: 1px solid #ccc; padding: 5px;">Imp</th>
-                                    <th style="border: 1px solid #ccc; padding: 5px;">Des</th>
-                                    <th style="border: 1px solid #ccc; padding: 5px;">Diag.</th>
-                                    <th style="border: 1px solid #ccc; padding: 5px;">Sev</th>
-                                    <th style="border: 1px solid #ccc; padding: 5px;">Desc. Sev</th>
-                                    <th style="border: 1px solid #ccc; padding: 5px;">Prob</th>
-                                    <th style="border: 1px solid #ccc; padding: 5px;">Desc. Prob</th>
-                                    <th style="border: 1px solid #ccc; padding: 5px;">Risco</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${riscosOrdenados.value.map(r => `
-                                    <tr>
-                                        <td style="border: 1px solid #ccc; padding: 4px; text-align: center;">${r.id}</td>
-                                        <td style="border: 1px solid #ccc; padding: 4px;">${r.rubrica}</td>
-                                        <td style="border: 1px solid #ccc; padding: 4px; text-align: center;">${r.imp}</td>
-                                        <td style="border: 1px solid #ccc; padding: 4px; text-align: center;">${r.des}</td>
-                                        <td style="border: 1px solid #ccc; padding: 4px; text-align: center;">${r.diagSlack}</td>
-                                        <td style="border: 1px solid #ccc; padding: 4px; text-align: center;">${r.sev}</td>
-                                        <td style="border: 1px solid #ccc; padding: 4px;">${r.descSev}</td>
-                                        <td style="border: 1px solid #ccc; padding: 4px; text-align: center;">${r.prob}</td>
-                                        <td style="border: 1px solid #ccc; padding: 4px;">${r.descProb}</td>
-                                        <td style="border: 1px solid #ccc; padding: 4px; text-align: center; background-color: ${badgeStyleFQA(r.nivelRisco).backgroundColor}; color: ${badgeStyleFQA(r.nivelRisco).color}; font-weight: bold;">${r.nivelRisco}</td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                `;
-
-                const imgSlack = slackChartInst.toBase64Image();
-                const imgFQA = fqaChartInst.toBase64Image();
-
-                element.innerHTML = `
-                    ${headerHtml}
-                    <div class="html2pdf__page-break"></div>
-                    <div style="padding: 20px; text-align: center;">
-                        <h2 style="margin-bottom: 20px;">Matriz Importância x Desempenho</h2>
-                        <img src="${imgSlack}" style="width: 100%; max-width: 700px;">
-                    </div>
-                    <div class="html2pdf__page-break"></div>
-                    <div style="padding: 20px; text-align: center;">
-                        <h2 style="margin-bottom: 20px;">Matriz de Risco (FQA)</h2>
-                        <img src="${imgFQA}" style="width: 100%; max-width: 700px;">
-                    </div>
-                `;
-
-                const opt = {
-                    margin: 0.5,
-                    filename: 'Relatorio_Analise_Riscos.pdf',
-                    image: { type: 'jpeg', quality: 0.98 },
-                    html2canvas: { scale: 2 },
-                    jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
-                };
-
-                html2pdf().set(opt).from(element).save();
-            };
-
-            const badgeStyleFQA = (nivel) => {
-                const color = COLORS_FQA[nivel] || '#fff';
-                const textColor = nivel === 'Crítico' ? 'white' : 'black';
-                return { backgroundColor: color, color: textColor };
-            };
-
-            const initCharts = () => {
-                const ctxSlack = document.getElementById('slackChart').getContext('2d');
-                slackChartInst = new Chart(ctxSlack, {
-                    type: 'scatter',
-                    data: {
-                        datasets: [
-                            { label: 'Layer_Green', data: dataSup, type: 'line', borderColor: 'black', borderWidth: 1.5, pointRadius: 0, tension: 0.4, cubicInterpolationMode: 'monotone', fill: 'end', backgroundColor: COLOR_ADEQUADO },
-                            { label: 'Layer_Yellow', data: dataMid, type: 'line', borderColor: 'black', borderWidth: 1.5, pointRadius: 0, borderDash: [5,5], tension: 0.4, cubicInterpolationMode: 'monotone', fill: 'end', backgroundColor: COLOR_MELHORIA },
-                            { label: 'Layer_Red', data: dataInf, type: 'line', borderColor: 'black', borderWidth: 1.5, pointRadius: 0, tension: 0.4, cubicInterpolationMode: 'monotone', fill: 'end', backgroundColor: COLOR_URGENTE },
-                            { label: 'Riscos', data: [], pointRadius: 0 }
-                        ]
-                    },
-                    options: {
-                        responsive: true, maintainAspectRatio: true, aspectRatio: 1,
-                        layout: {
-                            padding: {
-                                bottom: window.innerWidth <= 768 ? 35 : 50,
-                                left: window.innerWidth <= 768 ? 35 : 50,
-                                top: 10,
-                                right: 10
-                            }
-                        },
-                        plugins: {
-                            legend: { display: false },
-                            fqaBackground: false,
-                            slackOverlay: true,
-                            tooltip: { enabled: false },
-                            customFontSize: fontSize.value // Passar tamanho de fonte para o plugin
-                        },
-                        scales: {
-                            x: {
-                                min: 1, max: 9, reverse: true,
-                                grid: { color: 'black', lineWidth: 1 },
-                                ticks: { stepSize: 1, display: false }
-                            },
-                            y: {
-                                min: 1, max: 9, reverse: true,
-                                grid: { color: 'black', lineWidth: 1 },
-                                ticks: { stepSize: 1, display: false }
-                            }
-                        }
-                    }
-                });
-
-                const ctxFQA = document.getElementById('fqaChart').getContext('2d');
                 const isMobile = window.innerWidth <= 768;
-                fqaChartInst = new Chart(ctxFQA, {
-                    type: 'scatter',
-                    data: { datasets: [{ data: [], pointRadius: 0 }] },
-                    options: {
-                        responsive: true, maintainAspectRatio: true, aspectRatio: 1,
-                        layout: {
-                            padding: {
-                                bottom: isMobile ? 35 : 50,
-                                left: isMobile ? 35 : 50,
-                                top: 10,
-                                right: 10
+                const labelSize = isMobile ? 10 : 16;
+                const axisSize = isMobile ? 9 : 14;
+
+                const drawText = (text, xVal, yVal, color='#374151', rot=0) => {
+                    ctx.save(); ctx.translate(x.getPixelForValue(xVal), y.getPixelForValue(yVal));
+                    ctx.rotate(rot * Math.PI / 180); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                    ctx.fillStyle = color; ctx.font = `bold ${labelSize}px Inter, sans-serif`; ctx.fillText(text, 0, 0); ctx.restore();
+                };
+                drawText("Excesso?", 7.5, 1.5); drawText("Adequado", 5.5, 3.5);
+                drawText(isMobile ? "Front. Inf. Aceit." : "Fronteira Inferior de Aceitabilidade", 6, 4.85, '#4b5563', -22);
+                drawText("Melhoria", 7, 6.5); drawText(isMobile ? "Ação Urg." : "Ação Urgente", 3, 8);
+
+                ctx.save(); ctx.font = `bold ${axisSize}px Inter, sans-serif`; ctx.fillStyle = '#374151';
+                const yAxisPos = bottom + (isMobile ? 30 : 45);
+                ctx.textAlign = 'center'; ctx.fillText("IMPORTÂNCIA", (left + right) / 2, yAxisPos);
+                if (!isMobile) {
+                    ctx.textAlign = 'left'; ctx.fillText("BAIXA   <----------------------------------", left, yAxisPos);
+                    ctx.textAlign = 'right'; ctx.fillText("---------------------------------->   ALTA", right, yAxisPos);
+                }
+                const xAxisPos = left - (isMobile ? 30 : 45);
+                ctx.translate(xAxisPos, (top + bottom) / 2); ctx.rotate(-Math.PI / 2);
+                ctx.textAlign = 'center'; ctx.fillText("DESEMPENHO", 0, 0);
+                if (!isMobile) {
+                    ctx.textAlign = 'left'; ctx.fillText("RUIM   <----------------------------------", -((bottom - top) / 2), 0);
+                    ctx.textAlign = 'right'; ctx.fillText("---------------------------------->   BOM", ((bottom - top) / 2), 0);
+                }
+                ctx.restore();
+            }
+        };
+
+        const slackBgPlugin = {
+            id: 'slackBg',
+            beforeDraw: (chart) => {
+                if (chart.canvas.id !== 'slackChart') return;
+                const { ctx, chartArea: { left, top, width, height } } = chart;
+                ctx.save(); ctx.fillStyle = COLOR_EXCESSO; ctx.fillRect(left, top, width, height); ctx.restore();
+            }
+        };
+
+        Chart.register(fqaBackgroundPlugin, customPointsPlugin, slackOverlayPlugin, slackBgPlugin);
+
+        createApp({
+            setup() {
+                const riscos = ref([]);
+                const form = ref({ id: 1, rubrica: '', imp: 5, des: 5 });
+                const modoEdicao = ref(false);
+                const activeTab = ref('graficos');
+                const organizacao = ref('');
+                const fontSize = ref(window.innerWidth <= 768 ? 12 : 14); // Tamanho inicial: mobile 12px, desktop 14px
+                const fileInput = ref(null);
+                let slackChartInst = null, fqaChartInst = null;
+
+                const calcularRisco = (r) => {
+                    const findY = (arr, xVal) => { const p = arr.find(p => Math.abs(p.x - xVal) < 0.05); return p ? p.y : 9; };
+                    const yInf = findY(dataInf, r.imp); const ySup = findY(dataSup, r.imp); const yMid = findY(dataMid, r.imp);
+                    let diag = "";
+                    if (r.des > yInf) diag = "Ação Urgente"; else if (r.des > yMid) diag = "Melhoria"; else if (r.des > ySup) diag = "Adequado"; else diag = "Excesso?";
+                    const sev = MAP_IMP_SEV[r.imp], prob = MAP_DES_PROB[r.des];
+                    return { ...r, diagSlack: diag, sev, prob, descSev: MAP_SEV_DESC[sev], descProb: MAP_PROB_DESC[prob], nivelRisco: getNivelRisco(sev, prob) };
+                };
+                const riscosOrdenados = computed(() => [...riscos.value].map(calcularRisco).sort((a,b) => a.id - b.id));
+
+                const agruparRiscos = (dados, tipo) => {
+                    const groups = {};
+                    dados.forEach(r => {
+                        const key = tipo === 'slack' ? `${r.imp}-${r.des}` : `${r.sev}-${r.prob}`;
+                        if(!groups[key]) groups[key] = { x: tipo==='slack'?r.imp:r.sev, y: tipo==='slack'?r.des:r.prob, ids: [] };
+                        groups[key].ids.push(r.id);
+                    });
+                    return Object.values(groups);
+                };
+
+                const adicionarRisco = () => {
+                    if(!modoEdicao.value && riscos.value.some(r => r.id === form.value.id)) return alert("ID duplicado");
+                    if(modoEdicao.value) { const idx = riscos.value.findIndex(r => r.id === form.value.id); if(idx !== -1) riscos.value[idx] = { ...form.value }; modoEdicao.value = false; }
+                    else { riscos.value.push({ ...form.value }); form.value.id++; }
+                    form.value.rubrica = ''; form.value.imp = 5; form.value.des = 5;
+                    salvarLocalStorage();
+                    atualizarGraficos();
+                };
+
+                const editarRisco = (r) => { form.value = { ...r }; modoEdicao.value = true; };
+                const cancelarEdicao = () => { modoEdicao.value = false; form.value.id = riscos.value.length > 0 ? Math.max(...riscos.value.map(r=>r.id))+1 : 1; form.value.rubrica=''; };
+                const excluirRisco = (id) => { riscos.value = riscos.value.filter(r => r.id !== id); salvarLocalStorage(); atualizarGraficos(); };
+
+                const carregarExemplos = () => {
+                    riscos.value = [
+                        { id: 1, rubrica: 'As zonas de trabalho', imp: 5, des: 4 },
+                        { id: 2, rubrica: 'A organização técnica entre postos', imp: 1, des: 3 },
+                        { id: 3, rubrica: 'Os locais de trabalho', imp: 3, des: 6 },
+                        { id: 4, rubrica: 'Os riscos de acidentes', imp: 2, des: 5 },
+                        { id: 5, rubrica: 'Os comandos e sinais', imp: 5, des: 7 },
+                        { id: 6, rubrica: 'As ferramentas e material de trabalho', imp: 4, des: 6 },
+                        { id: 7, rubrica: 'O trabalho repetitivo', imp: 3, des: 2 },
+                        { id: 8, rubrica: 'Os manuseios / levantamento de peso', imp: 2, des: 5 },
+                        { id: 9, rubrica: 'A carga mental', imp: 1, des: 7 },
+                        { id: 10, rubrica: 'A iluminação', imp: 3, des: 3 },
+                        { id: 11, rubrica: 'O ruído', imp: 2, des: 8 },
+                        { id: 12, rubrica: 'Os ambientes térmicos', imp: 5, des: 9 },
+                        { id: 13, rubrica: 'Os riscos químicos e biológicos', imp: 4, des: 4 },
+                        { id: 14, rubrica: 'As vibrações', imp: 5, des: 5 },
+                        { id: 15, rubrica: 'As rel de trabalho entre trabalhadores', imp: 6, des: 6 },
+                        { id: 16, rubrica: 'O ambiente social local e geral', imp: 7, des: 7 },
+                        { id: 17, rubrica: 'O conteúdo do trabalho', imp: 2, des: 7 },
+                        { id: 18, rubrica: 'O ambiente psicossocial', imp: 7, des: 8 }
+                    ];
+                    salvarLocalStorage();
+                    atualizarGraficos();
+                };
+
+                // NOVA FUNÇÃO: Limpar tudo
+                const limparTudo = () => {
+                    if(confirm('⚠️ Tem certeza que deseja apagar TODOS os dados?\n\nEsta ação não pode ser desfeita.')) {
+                        riscos.value = [];
+                        form.value = { id: 1, rubrica: '', imp: 5, des: 5 };
+                        modoEdicao.value = false;
+                        localStorage.removeItem('riscos-sst');
+                        localStorage.removeItem('organizacao-sst');
+                        organizacao.value = '';
+                        atualizarGraficos();
+                        alert('✅ Todos os dados foram removidos!');
+                    }
+                };
+
+                // NOVA FUNÇÃO: Salvar dados em arquivo JSON
+                const salvarDados = () => {
+                    const dataAtual = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+                    const dadosExportar = {
+                        versao: '1.5.1',
+                        data: dataAtual,
+                        organizacao: organizacao.value || '',
+                        riscos: riscos.value
+                    };
+
+                    const blob = new Blob([JSON.stringify(dadosExportar, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `riscos-sst-${dataAtual}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+
+                    alert('✅ Dados salvos com sucesso!');
+                };
+
+                // NOVA FUNÇÃO: Trigger para input file
+                const triggerImport = () => {
+                    fileInput.value.click();
+                };
+
+                // NOVA FUNÇÃO: Importar dados de arquivo JSON
+                const importarDados = (event) => {
+                    const file = event.target.files[0];
+                    if (!file) return;
+
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const dados = JSON.parse(e.target.result);
+
+                            // Validação básica
+                            if (!dados.riscos || !Array.isArray(dados.riscos)) {
+                                throw new Error('Arquivo inválido: não contém dados de riscos.');
                             }
+
+                            // Confirmar antes de sobrescrever
+                            if (riscos.value.length > 0) {
+                                if (!confirm('⚠️ Existem dados cadastrados. Deseja substituí-los pelos dados do arquivo?')) {
+                                    event.target.value = ''; // Limpar input
+                                    return;
+                                }
+                            }
+
+                            // Carregar dados
+                            riscos.value = dados.riscos;
+                            organizacao.value = dados.organizacao || '';
+
+                            salvarLocalStorage();
+                            atualizarGraficos();
+                            alert(`✅ Dados importados com sucesso!\n\n${dados.riscos.length} riscos carregados.`);
+
+                        } catch (error) {
+                            alert(`❌ Erro ao importar arquivo:\n\n${error.message}`);
+                        }
+
+                        event.target.value = ''; // Limpar input
+                    };
+                    reader.readAsText(file);
+                };
+
+                // NOVA FUNÇÃO: Aumentar tamanho da fonte
+                const aumentarFonte = () => {
+                    if (fontSize.value < 20) {
+                        fontSize.value += 2;
+                        localStorage.setItem('fontSize-graficos', fontSize.value);
+                        atualizarGraficos();
+                    }
+                };
+
+                // NOVA FUNÇÃO: Diminuir tamanho da fonte
+                const diminuirFonte = () => {
+                    if (fontSize.value > 8) {
+                        fontSize.value -= 2;
+                        localStorage.setItem('fontSize-graficos', fontSize.value);
+                        atualizarGraficos();
+                    }
+                };
+
+                // NOVA FUNÇÃO: Salvar no localStorage
+                const salvarLocalStorage = () => {
+                    localStorage.setItem('riscos-sst', JSON.stringify(riscos.value));
+                    localStorage.setItem('organizacao-sst', organizacao.value);
+                };
+
+                // NOVA FUNÇÃO: Carregar do localStorage
+                const carregarLocalStorage = () => {
+                    const riscosStorage = localStorage.getItem('riscos-sst');
+                    const orgStorage = localStorage.getItem('organizacao-sst');
+                    const fontStorage = localStorage.getItem('fontSize-graficos');
+
+                    if (riscosStorage) {
+                        try {
+                            riscos.value = JSON.parse(riscosStorage);
+                        } catch (e) {
+                            console.error('Erro ao carregar riscos do localStorage:', e);
+                        }
+                    }
+
+                    if (orgStorage) {
+                        organizacao.value = orgStorage;
+                    }
+
+                    if (fontStorage) {
+                        fontSize.value = parseInt(fontStorage);
+                    }
+                };
+
+                const exportarExcel = () => {
+                    if (typeof XLSX === 'undefined') {
+                        alert('❌ Biblioteca XLSX não carregada. Não é possível exportar para Excel.');
+                        return;
+                    }
+
+                    const wb = XLSX.utils.book_new();
+
+                    const data = riscosOrdenados.value.map(r => ({
+                        "ID": r.id,
+                        "Rubrica": r.rubrica,
+                        "Imp": r.imp,
+                        "Des": r.des,
+                        "Diag (Slack)": r.diagSlack,
+                        "Sev": r.sev,
+                        "Desc. Sev": r.descSev,
+                        "Prob": r.prob,
+                        "Desc. Prob": r.descProb,
+                        "Nível de Risco": r.nivelRisco
+                    }));
+
+                    const dataAtual = new Date().toLocaleDateString('pt-BR');
+                    const orgText = organizacao.value ? organizacao.value : '(Não informado)';
+                    data.push({
+                        "ID": `Dados exportados em ${dataAtual}`,
+                        "Rubrica": orgText,
+                        "Imp": "", "Des": "", "Diag (Slack)": "", "Sev": "", "Desc. Sev": "", "Prob": "", "Desc. Prob": "", "Nível de Risco": ""
+                    });
+
+                    const ws = XLSX.utils.json_to_sheet(data);
+                    ws['!cols'] = [
+                        { wch: 5 }, { wch: 35 }, { wch: 5 }, { wch: 5 }, { wch: 15 },
+                        { wch: 5 }, { wch: 20 }, { wch: 5 }, { wch: 20 }, { wch: 15 }
+                    ];
+
+                    XLSX.utils.book_append_sheet(wb, ws, "Riscos");
+                    XLSX.writeFile(wb, "Gestao_Riscos_SST.xlsx");
+                };
+
+                const exportarPDF = () => {
+                    if (typeof html2pdf === 'undefined') {
+                        alert('❌ Biblioteca html2pdf não carregada. Não é possível exportar para PDF.');
+                        return;
+                    }
+
+                    const element = document.createElement('div');
+                    element.style.width = '100%';
+
+                    const headerHtml = `
+                        <div style="padding: 20px;">
+                            <h1 style="font-size: 24px; font-weight: bold; text-align: center; margin-bottom: 10px;">RELATÓRIO DE ANÁLISE DE RISCOS</h1>
+                            <p style="text-align: center; color: #666; margin-bottom: 20px;">Data: ${new Date().toLocaleDateString()}</p>
+                            <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
+                                <thead style="background-color: #f1f5f9;">
+                                    <tr>
+                                        <th style="border: 1px solid #ccc; padding: 5px;">ID</th>
+                                        <th style="border: 1px solid #ccc; padding: 5px;">Rubrica</th>
+                                        <th style="border: 1px solid #ccc; padding: 5px;">Imp</th>
+                                        <th style="border: 1px solid #ccc; padding: 5px;">Des</th>
+                                        <th style="border: 1px solid #ccc; padding: 5px;">Diag.</th>
+                                        <th style="border: 1px solid #ccc; padding: 5px;">Sev</th>
+                                        <th style="border: 1px solid #ccc; padding: 5px;">Desc. Sev</th>
+                                        <th style="border: 1px solid #ccc; padding: 5px;">Prob</th>
+                                        <th style="border: 1px solid #ccc; padding: 5px;">Desc. Prob</th>
+                                        <th style="border: 1px solid #ccc; padding: 5px;">Risco</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${riscosOrdenados.value.map(r => `
+                                        <tr>
+                                            <td style="border: 1px solid #ccc; padding: 4px; text-align: center;">${r.id}</td>
+                                            <td style="border: 1px solid #ccc; padding: 4px;">${r.rubrica}</td>
+                                            <td style="border: 1px solid #ccc; padding: 4px; text-align: center;">${r.imp}</td>
+                                            <td style="border: 1px solid #ccc; padding: 4px; text-align: center;">${r.des}</td>
+                                            <td style="border: 1px solid #ccc; padding: 4px; text-align: center;">${r.diagSlack}</td>
+                                            <td style="border: 1px solid #ccc; padding: 4px; text-align: center;">${r.sev}</td>
+                                            <td style="border: 1px solid #ccc; padding: 4px;">${r.descSev}</td>
+                                            <td style="border: 1px solid #ccc; padding: 4px; text-align: center;">${r.prob}</td>
+                                            <td style="border: 1px solid #ccc; padding: 4px;">${r.descProb}</td>
+                                            <td style="border: 1px solid #ccc; padding: 4px; text-align: center; background-color: ${badgeStyleFQA(r.nivelRisco).backgroundColor}; color: ${badgeStyleFQA(r.nivelRisco).color}; font-weight: bold;">${r.nivelRisco}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+
+                    const imgSlack = slackChartInst.toBase64Image();
+                    const imgFQA = fqaChartInst.toBase64Image();
+
+                    element.innerHTML = `
+                        ${headerHtml}
+                        <div class="html2pdf__page-break"></div>
+                        <div style="padding: 20px; text-align: center;">
+                            <h2 style="margin-bottom: 20px;">Matriz Importância x Desempenho</h2>
+                            <img src="${imgSlack}" style="width: 100%; max-width: 700px;">
+                        </div>
+                        <div class="html2pdf__page-break"></div>
+                        <div style="padding: 20px; text-align: center;">
+                            <h2 style="margin-bottom: 20px;">Matriz de Risco (FQA)</h2>
+                            <img src="${imgFQA}" style="width: 100%; max-width: 700px;">
+                        </div>
+                    `;
+
+                    const opt = {
+                        margin: 0.5,
+                        filename: 'Relatorio_Analise_Riscos.pdf',
+                        image: { type: 'jpeg', quality: 0.98 },
+                        html2canvas: { scale: 2 },
+                        jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+                    };
+
+                    html2pdf().set(opt).from(element).save();
+                };
+
+                const badgeStyleFQA = (nivel) => {
+                    const color = COLORS_FQA[nivel] || '#fff';
+                    const textColor = nivel === 'Crítico' ? 'white' : 'black';
+                    return { backgroundColor: color, color: textColor };
+                };
+
+                const initCharts = () => {
+                    const ctxSlack = document.getElementById('slackChart').getContext('2d');
+                    slackChartInst = new Chart(ctxSlack, {
+                        type: 'scatter',
+                        data: {
+                            datasets: [
+                                { label: 'Layer_Green', data: dataSup, type: 'line', borderColor: 'black', borderWidth: 1.5, pointRadius: 0, tension: 0.4, cubicInterpolationMode: 'monotone', fill: 'end', backgroundColor: COLOR_ADEQUADO },
+                                { label: 'Layer_Yellow', data: dataMid, type: 'line', borderColor: 'black', borderWidth: 1.5, pointRadius: 0, borderDash: [5,5], tension: 0.4, cubicInterpolationMode: 'monotone', fill: 'end', backgroundColor: COLOR_MELHORIA },
+                                { label: 'Layer_Red', data: dataInf, type: 'line', borderColor: 'black', borderWidth: 1.5, pointRadius: 0, tension: 0.4, cubicInterpolationMode: 'monotone', fill: 'end', backgroundColor: COLOR_URGENTE },
+                                { label: 'Riscos', data: [], pointRadius: 0 }
+                            ]
                         },
-                        plugins: {
-                            legend: { display: false },
-                            slackOverlay: false,
-                            tooltip: { enabled: false },
-                            customFontSize: fontSize.value // Passar tamanho de fonte para o plugin
-                        },
-                        scales: {
-                            x: {
-                                min: 0.5, max: 5.5, grid: {display:false}, ticks: { display: false },
-                                title: {
-                                    display:true,
-                                    text:'SEVERIDADE',
-                                    font:{weight:'bold', size: isMobile ? 12 : 18},
-                                    padding: { top: isMobile ? 15 : 25 }
+                        options: {
+                            responsive: true, maintainAspectRatio: true, aspectRatio: 1,
+                            layout: {
+                                padding: {
+                                    bottom: window.innerWidth <= 768 ? 35 : 50,
+                                    left: window.innerWidth <= 768 ? 35 : 50,
+                                    top: 10,
+                                    right: 10
                                 }
                             },
-                            y: {
-                                min: 0.5, max: 5.5, grid: {display:false}, ticks: { display: false },
-                                title: {
-                                    display:true,
-                                    text:'PROBABILIDADE',
-                                    font:{weight:'bold', size: isMobile ? 12 : 18},
-                                    padding: { bottom: isMobile ? 15 : 25 }
+                            plugins: {
+                                legend: { display: false },
+                                fqaBackground: false,
+                                slackOverlay: true,
+                                tooltip: { enabled: false },
+                                customFontSize: fontSize.value // Passar tamanho de fonte para o plugin
+                            },
+                            scales: {
+                                x: {
+                                    min: 1, max: 9, reverse: true,
+                                    grid: { color: 'black', lineWidth: 1 },
+                                    ticks: { stepSize: 1, display: false }
+                                },
+                                y: {
+                                    min: 1, max: 9, reverse: true,
+                                    grid: { color: 'black', lineWidth: 1 },
+                                    ticks: { stepSize: 1, display: false }
                                 }
                             }
                         }
-                    }
+                    });
+
+                    const ctxFQA = document.getElementById('fqaChart').getContext('2d');
+                    const isMobile = window.innerWidth <= 768;
+                    fqaChartInst = new Chart(ctxFQA, {
+                        type: 'scatter',
+                        data: { datasets: [{ data: [], pointRadius: 0 }] },
+                        options: {
+                            responsive: true, maintainAspectRatio: true, aspectRatio: 1,
+                            layout: {
+                                padding: {
+                                    bottom: isMobile ? 35 : 50,
+                                    left: isMobile ? 35 : 50,
+                                    top: 10,
+                                    right: 10
+                                }
+                            },
+                            plugins: {
+                                legend: { display: false },
+                                slackOverlay: false,
+                                tooltip: { enabled: false },
+                                customFontSize: fontSize.value // Passar tamanho de fonte para o plugin
+                            },
+                            scales: {
+                                x: {
+                                    min: 0.5, max: 5.5, grid: {display:false}, ticks: { display: false },
+                                    title: {
+                                        display:true,
+                                        text:'SEVERIDADE',
+                                        font:{weight:'bold', size: isMobile ? 12 : 18},
+                                        padding: { top: isMobile ? 15 : 25 }
+                                    }
+                                },
+                                y: {
+                                    min: 0.5, max: 5.5, grid: {display:false}, ticks: { display: false },
+                                    title: {
+                                        display:true,
+                                        text:'PROBABILIDADE',
+                                        font:{weight:'bold', size: isMobile ? 12 : 18},
+                                        padding: { bottom: isMobile ? 15 : 25 }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                };
+
+                const atualizarGraficos = () => {
+                    if(!slackChartInst) return;
+
+                    // Atualizar tamanho de fonte nos gráficos
+                    slackChartInst.options.plugins.customFontSize = fontSize.value;
+                    fqaChartInst.options.plugins.customFontSize = fontSize.value;
+
+                    const dados = riscosOrdenados.value;
+                    const gSlack = agruparRiscos(dados, 'slack');
+                    slackChartInst.data.customGroupedData = gSlack;
+                    slackChartInst.data.datasets[3].data = gSlack.map(g => ({x: g.x, y: g.y}));
+                    slackChartInst.update();
+
+                    const gFQA = agruparRiscos(dados, 'fqa');
+                    fqaChartInst.data.customGroupedData = gFQA;
+                    fqaChartInst.data.datasets[0].data = gFQA.map(g => ({x: g.x, y: g.y}));
+                    fqaChartInst.update();
+                };
+
+                onMounted(() => {
+                    carregarLocalStorage();
+                    initCharts();
+                    atualizarGraficos();
                 });
-            };
 
-            const atualizarGraficos = () => {
-                if(!slackChartInst) return;
-
-                // Atualizar tamanho de fonte nos gráficos
-                slackChartInst.options.plugins.customFontSize = fontSize.value;
-                fqaChartInst.options.plugins.customFontSize = fontSize.value;
-
-                const dados = riscosOrdenados.value;
-                const gSlack = agruparRiscos(dados, 'slack');
-                slackChartInst.data.customGroupedData = gSlack;
-                slackChartInst.data.datasets[3].data = gSlack.map(g => ({x: g.x, y: g.y}));
-                slackChartInst.update();
-
-                const gFQA = agruparRiscos(dados, 'fqa');
-                fqaChartInst.data.customGroupedData = gFQA;
-                fqaChartInst.data.datasets[0].data = gFQA.map(g => ({x: g.x, y: g.y}));
-                fqaChartInst.update();
-            };
-
-            onMounted(() => {
-                carregarLocalStorage();
-                initCharts();
-                atualizarGraficos();
-            });
-
-            return {
-                riscos, form, modoEdicao, riscosOrdenados,
-                activeTab, organizacao, fontSize, fileInput,
-                adicionarRisco, editarRisco, cancelarEdicao, excluirRisco,
-                carregarExemplos, limparTudo, salvarDados, triggerImport, importarDados,
-                aumentarFonte, diminuirFonte,
-                exportarExcel, exportarPDF, badgeStyleFQA
-            };
-        }
-    }).mount('#app');
+                return {
+                    riscos, form, modoEdicao, riscosOrdenados,
+                    activeTab, organizacao, fontSize, fileInput,
+                    adicionarRisco, editarRisco, cancelarEdicao, excluirRisco,
+                    carregarExemplos, limparTudo, salvarDados, triggerImport, importarDados,
+                    aumentarFonte, diminuirFonte,
+                    exportarExcel, exportarPDF, badgeStyleFQA
+                };
+            }
+        }).mount('#app');
+    }
 </script>
 </body>
 </html>
