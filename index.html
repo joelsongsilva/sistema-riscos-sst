@@ -213,27 +213,43 @@
                 width: 100% !important;
                 border-right: none !important;
                 max-height: none !important;
-                height: calc(100vh - 90px) !important; /* ALTURA TOTAL menos header e tabs */
-                min-height: calc(100vh - 90px) !important;
-                overflow-y: auto !important; /* Scroll vertical se necessário */
+                height: calc(100vh - 90px) !important;
+                height: calc(100dvh - 90px) !important; /* Dynamic viewport para mobile */
+                min-height: calc(100dvh - 90px) !important;
+                overflow-y: auto !important;
                 -webkit-overflow-scrolling: touch !important;
-                padding: 0.35rem !important;
+                padding: 0.5rem !important;
                 gap: 0.5rem !important;
                 flex: 1 1 auto !important;
+                display: flex !important;
+                flex-direction: column !important;
+                background: #0f172a !important; /* Fundo escuro para combinar */
             }
 
+            /* Cada card de gráfico ocupa metade do espaço */
             .chart-card {
-                margin-bottom: 0.35rem !important; /* REDUZIDO: 0.5rem → 0.35rem */
-                padding: 0.35rem !important; /* REDUZIDO: 0.5rem → 0.35rem */
+                margin-bottom: 0 !important;
+                padding: 0.35rem !important;
+                flex: 1 1 0 !important; /* Crescer igualmente */
+                min-height: 0 !important; /* Permitir encolher */
+                display: flex !important;
+                flex-direction: column !important;
             }
 
-            .chart-title { font-size: 0.7rem !important; padding: 0.25rem 0.35rem !important; margin-bottom: 0.35rem !important; } /* REDUZIDO */
+            .chart-title {
+                font-size: 0.7rem !important;
+                padding: 0.25rem 0.35rem !important;
+                margin-bottom: 0.25rem !important;
+                flex-shrink: 0 !important;
+            }
 
-            /* AJUSTE: Altura 260px → 450px para melhor visualização + LARGURA TOTAL */
+            /* Container do gráfico preenche o espaço restante do card */
             .chart-box-container {
                 max-width: 100% !important;
-                width: 100% !important; /* ADICIONADO: Aproveitar toda largura horizontal */
-                height: 450px !important; /* AUMENTADO: 380px → 450px para aproveitar espaço vertical */
+                width: 100% !important;
+                height: auto !important;
+                flex: 1 1 auto !important; /* Crescer para preencher */
+                min-height: 200px !important; /* Mínimo para não ficar muito pequeno */
                 aspect-ratio: auto !important;
             }
 
@@ -407,13 +423,13 @@
         <header class="bg-slate-900 text-white p-4 shadow-md z-10 shrink-0" data-html2canvas-ignore="true">
             <!-- Badge de Versão (canto superior direito) -->
             <div style="position: absolute; top: 5px; right: 5px; background: #10b981; color: white; padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; z-index: 9999;">
-                v1.5.6
+                v1.5.7
             </div>
 
             <div class="flex justify-between items-center mb-3">
                 <div class="flex-1">
                     <h1 class="mobile-header-title text-xl font-bold tracking-tight">MATRIZ DE GESTÃO DE RISCOS DE SEGURANÇA DO TRABALHO</h1>
-                    <p class="mobile-header-subtitle text-xs text-slate-400">Metodologia Híbrida: Slack (Importância x Desempenho) & FQA (Severidade x Probabilidade) - versão 1.5.6 - 2025</p>
+                    <p class="mobile-header-subtitle text-xs text-slate-400">Metodologia Híbrida: Slack (Importância x Desempenho) & FQA (Severidade x Probabilidade) - versão 1.5.7 - 2025</p>
                 </div>
                 <div class="flex gap-2">
                     <button @click="carregarExemplos" class="mobile-btn mobile-show px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded text-sm transition border border-slate-600">
