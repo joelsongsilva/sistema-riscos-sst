@@ -539,18 +539,32 @@
                             <div class="slider-container bg-white p-2 rounded border border-gray-200">
                                 <div class="flex justify-between mb-1">
                                     <label class="form-label text-xs font-bold text-gray-700">Importância (1-9)</label>
-                                    <span class="slider-value text-xs font-bold text-blue-600 bg-blue-50 px-2 rounded">{{ form.imp }}</span>
+                                    <span class="slider-value text-base font-bold text-white bg-blue-600 px-3 py-1 rounded shadow-sm">{{ form.imp }}</span>
                                 </div>
                                 <input type="range" v-model.number="form.imp" min="1" max="9" step="1" class="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer">
                             </div>
                             <div class="slider-container bg-white p-2 rounded border border-gray-200">
                                 <div class="flex justify-between mb-1">
                                     <label class="form-label text-xs font-bold text-gray-700">Desempenho (1-9)</label>
-                                    <span class="slider-value text-xs font-bold text-blue-600 bg-blue-50 px-2 rounded">{{ form.des }}</span>
+                                    <span class="slider-value text-base font-bold text-white bg-blue-600 px-3 py-1 rounded shadow-sm">{{ form.des }}</span>
                                 </div>
                                 <input type="range" v-model.number="form.des" min="1" max="9" step="1" class="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer">
                             </div>
                         </div>
+
+                        <!-- Checkbox N/A -->
+                        <div class="flex items-center gap-2 mb-2 p-2 bg-gray-50 rounded border border-gray-200">
+                            <input
+                                type="checkbox"
+                                v-model="form.isNA"
+                                id="checkboxNA"
+                                class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
+                            >
+                            <label for="checkboxNA" class="text-xs font-medium text-gray-700 cursor-pointer select-none">
+                                <span class="font-bold text-orange-600">N/A</span> - Marcar este ID como Não Aplicável (pula ID sem adicionar dados)
+                            </label>
+                        </div>
+
                         <div class="flex gap-2">
                             <button type="submit" class="form-btn flex-1 bg-blue-700 hover:bg-blue-800 text-white font-bold py-1.5 px-4 rounded shadow text-sm">{{ modoEdicao ? 'Atualizar Dados' : 'Adicionar à Tabela' }}</button>
                             <button v-if="modoEdicao" @click="cancelarEdicao" type="button" class="mt-1 text-gray-500 text-xs underline">Cancelar</button>
@@ -1610,7 +1624,7 @@
         createApp({
             setup() {
                 const riscos = ref([]);
-                const form = ref({ id: 1, rubrica: '', imp: 5, des: 5 });
+                const form = ref({ id: 1, rubrica: '', imp: 5, des: 5, isNA: false });
                 const modoEdicao = ref(false);
                 const activeTab = ref('graficos');
                 const organizacao = ref('');
@@ -1630,7 +1644,8 @@
                     return { ...r, diagSlack: diag, sev, prob, descSev: MAP_SEV_DESC[sev], descProb: MAP_PROB_DESC[prob], nivelRisco: getNivelRisco(sev, prob) };
                 };
                 const riscosOrdenados = computed(() => {
-                    const data = [...riscos.value].map(calcularRisco);
+                    // Filtrar riscos N/A antes de processar
+                    const data = [...riscos.value].filter(r => !r.isNA).map(calcularRisco);
 
                     // Ordenação dinâmica baseada na coluna e ordem selecionadas
                     return data.sort((a, b) => {
@@ -1660,7 +1675,8 @@
 
                 const agruparRiscos = (dados, tipo) => {
                     const groups = {};
-                    dados.forEach(r => {
+                    // Filtrar riscos N/A antes de agrupar
+                    dados.filter(r => !r.isNA).forEach(r => {
                         const key = tipo === 'slack' ? `${r.imp}-${r.des}` : `${r.sev}-${r.prob}`;
                         if(!groups[key]) groups[key] = { x: tipo==='slack'?r.imp:r.sev, y: tipo==='slack'?r.des:r.prob, ids: [] };
                         groups[key].ids.push(r.id);
@@ -1670,37 +1686,60 @@
 
                 const adicionarRisco = () => {
                     if(!modoEdicao.value && riscos.value.some(r => r.id === form.value.id)) return alert("ID duplicado");
+
+                    // Se for N/A, adiciona sem validação de rubrica/imp/des
+                    if (form.value.isNA) {
+                        if(modoEdicao.value) {
+                            const idx = riscos.value.findIndex(r => r.id === form.value.id);
+                            if(idx !== -1) riscos.value[idx] = { id: form.value.id, rubrica: '', imp: 0, des: 0, isNA: true };
+                            modoEdicao.value = false;
+                        } else {
+                            riscos.value.push({ id: form.value.id, rubrica: '', imp: 0, des: 0, isNA: true });
+                            form.value.id++;
+                        }
+                        form.value.rubrica = '';
+                        form.value.imp = 5;
+                        form.value.des = 5;
+                        form.value.isNA = false;
+                        salvarLocalStorage();
+                        atualizarGraficos();
+                        return;
+                    }
+
+                    // Caso normal (não N/A)
                     if(modoEdicao.value) { const idx = riscos.value.findIndex(r => r.id === form.value.id); if(idx !== -1) riscos.value[idx] = { ...form.value }; modoEdicao.value = false; }
                     else { riscos.value.push({ ...form.value }); form.value.id++; }
-                    form.value.rubrica = ''; form.value.imp = 5; form.value.des = 5;
+                    form.value.rubrica = ''; form.value.imp = 5; form.value.des = 5; form.value.isNA = false;
                     salvarLocalStorage();
                     atualizarGraficos();
                 };
 
                 const editarRisco = (r) => { form.value = { ...r }; modoEdicao.value = true; };
-                const cancelarEdicao = () => { modoEdicao.value = false; form.value.id = riscos.value.length > 0 ? Math.max(...riscos.value.map(r=>r.id))+1 : 1; form.value.rubrica=''; };
+                const cancelarEdicao = () => { modoEdicao.value = false; form.value.id = riscos.value.length > 0 ? Math.max(...riscos.value.map(r=>r.id))+1 : 1; form.value.rubrica=''; form.value.isNA = false; };
                 const excluirRisco = (id) => { riscos.value = riscos.value.filter(r => r.id !== id); salvarLocalStorage(); atualizarGraficos(); };
 
                 const carregarExemplos = () => {
                     riscos.value = [
-                        { id: 1, rubrica: 'As zonas de trabalho', imp: 4, des: 3 },
-                        { id: 2, rubrica: 'A organização técnica entre postos', imp: 5, des: 4 },
+                        { id: 1, rubrica: 'As zonas de trabalho', imp: 4, des: 7 },
+                        { id: 2, rubrica: 'A organização técnica entre postos', imp: 5, des: 5 },
                         { id: 3, rubrica: 'Os locais de trabalho', imp: 3, des: 5 },
-                        { id: 4, rubrica: 'Os riscos de acidentes', imp: 1, des: 3 },
-                        { id: 5, rubrica: 'Os comandos e sinais', imp: 5, des: 3 },
-                        { id: 6, rubrica: 'As ferramentas e material de trabalho', imp: 4, des: 2 },
-                        { id: 7, rubrica: 'O trabalho repetitivo', imp: 4, des: 3 },
-                        { id: 8, rubrica: 'Os manuseios / levantamento de peso', imp: 3, des: 3 },
+                        { id: 4, rubrica: 'Os riscos de acidentes', imp: 1, des: 7 },
+                        { id: 5, rubrica: 'Os comandos e sinais', imp: 5, des: 6 },
+                        { id: 6, rubrica: 'As ferramentas e material de trabalho', imp: 4, des: 1 },
+                        { id: 7, rubrica: 'O trabalho repetitivo', imp: 4, des: 5 },
+                        { id: 8, rubrica: 'Os manuseios / levantamento de peso', imp: 3, des: 5 },
                         { id: 9, rubrica: 'A carga mental', imp: 4, des: 2 },
-                        { id: 10, rubrica: 'A iluminação', imp: 5, des: 3 },
-                        { id: 11, rubrica: 'O ruído', imp: 4, des: 4 },
-                        { id: 12, rubrica: 'Os ambientes térmicos', imp: 4, des: 4 },
-                        { id: 15, rubrica: 'As rel. de trabalho entre trabalhadores', imp: 6, des: 2 },
+                        { id: 10, rubrica: 'A iluminação', imp: 5, des: 1 },
+                        { id: 11, rubrica: 'O ruído', imp: 4, des: 3 },
+                        { id: 12, rubrica: 'Os ambientes térmicos', imp: 4, des: 6 },
+                        { id: 13, rubrica: '', imp: 0, des: 0, isNA: true },
+                        { id: 14, rubrica: '', imp: 0, des: 0, isNA: true },
+                        { id: 15, rubrica: 'As relações de trabalho entre trabalhadores', imp: 6, des: 2 },
                         { id: 16, rubrica: 'O ambiente social local e geral', imp: 5, des: 2 },
-                        { id: 17, rubrica: 'O conteúdo do trabalho', imp: 5, des: 5 },
-                        { id: 18, rubrica: 'O ambiente psicossocial', imp: 4, des: 1 }
+                        { id: 17, rubrica: 'O conteúdo do trabalho', imp: 5, des: 2 },
+                        { id: 18, rubrica: 'O ambiente psicossocial', imp: 4, des: 4 }
                     ];
-                    organizacao.value = 'CANTEIRO B';
+                    organizacao.value = 'CANTEIRO A';
                     salvarLocalStorage();
                     atualizarGraficos();
                 };
@@ -1709,7 +1748,7 @@
                 const limparTudo = () => {
                     if(confirm('⚠️ Tem certeza que deseja apagar TODOS os dados?\n\nEsta ação não pode ser desfeita.')) {
                         riscos.value = [];
-                        form.value = { id: 1, rubrica: '', imp: 5, des: 5 };
+                        form.value = { id: 1, rubrica: '', imp: 5, des: 5, isNA: false };
                         modoEdicao.value = false;
                         localStorage.removeItem('riscos-sst');
                         localStorage.removeItem('organizacao-sst');
@@ -1950,6 +1989,10 @@
                     const element = document.createElement('div');
                     element.style.width = '100%';
 
+                    // Identificar IDs marcados como N/A
+                    const naIds = riscos.value.filter(r => r.isNA).map(r => r.id).sort((a, b) => a - b);
+                    const naNote = naIds.length > 0 ? `<p style="margin-top: 10px; font-size: 11px; color: #333; font-style: italic; font-weight: 500;">IDs marcados como N/A (Não Aplicável): ${naIds.join(', ')}</p>` : '';
+
                     const headerHtml = `
                         <div style="padding: 20px;">
                             <h1 style="font-size: 24px; font-weight: bold; text-align: center; margin-bottom: 10px;">RELATÓRIO DE ANÁLISE DE RISCOS</h1>
@@ -1986,6 +2029,7 @@
                                     `).join('')}
                                 </tbody>
                             </table>
+                            ${naNote}
                         </div>
                     `;
 
