@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Gestão de Riscos (Slack + FQA) v1.5.1</title>
+    <title>Sistema de Gestão de Riscos (Slack + FQA) v1.0</title>
 
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#0f172a">
@@ -423,15 +423,18 @@
         <header class="bg-slate-900 text-white p-4 shadow-md z-10 shrink-0" data-html2canvas-ignore="true">
             <!-- Badge de Versão (canto superior direito) -->
             <div style="position: absolute; top: 5px; right: 5px; background: #10b981; color: white; padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; z-index: 9999;">
-                v1.5.7
+                v1.0
             </div>
 
             <div class="flex justify-between items-center mb-3">
                 <div class="flex-1">
                     <h1 class="mobile-header-title text-xl font-bold tracking-tight">MATRIZ DE GESTÃO DE RISCOS DE SEGURANÇA DO TRABALHO</h1>
-                    <p class="mobile-header-subtitle text-xs text-slate-400">Metodologia Híbrida: Slack (Importância x Desempenho) & FQA (Severidade x Probabilidade) - versão 1.5.7 - 2025</p>
+                    <p class="mobile-header-subtitle text-xs text-slate-400">Metodologia Híbrida: Slack (Importância x Desempenho) & FQA (Severidade x Probabilidade) - versão 1.0 - 2025</p>
                 </div>
                 <div class="flex gap-2">
+                    <button @click="mostrarAjuda = true" class="mobile-btn px-3 py-1 bg-blue-700 hover:bg-blue-600 rounded text-sm transition shadow">
+                        ❓ Ajuda
+                    </button>
                     <button @click="carregarExemplos" class="mobile-btn mobile-show px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded text-sm transition border border-slate-600">
                         Exemplos
                     </button>
@@ -560,16 +563,36 @@
                     <table class="data-table w-full border-collapse">
                         <thead class="bg-gray-100 sticky top-0 z-10 shadow-sm">
                             <tr>
-                                <th class="w-10">ID</th>
-                                <th class="text-left min-w-[150px]">Rubrica</th>
-                                <th>Imp<br>(S)</th>
-                                <th>Des<br>(S)</th>
-                                <th>Diag.<br>(Slack)</th>
-                                <th>Sev<br>(FQA)</th>
-                                <th class="min-w-[100px]">Descrição<br>Sev</th>
-                                <th>Prob<br>(FQA)</th>
-                                <th class="min-w-[100px]">Descrição<br>Prob</th>
-                                <th class="min-w-[100px]">Nível de Risco<br>(FQA)</th>
+                                <th @click="ordenarPor('id')" class="w-10 cursor-pointer hover:bg-gray-200 transition" :class="{'bg-blue-100': sortColumn === 'id'}">
+                                    ID <span v-if="sortColumn === 'id'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span>
+                                </th>
+                                <th @click="ordenarPor('rubrica')" class="text-left min-w-[150px] cursor-pointer hover:bg-gray-200 transition" :class="{'bg-blue-100': sortColumn === 'rubrica'}">
+                                    Rubrica <span v-if="sortColumn === 'rubrica'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span>
+                                </th>
+                                <th @click="ordenarPor('imp')" class="cursor-pointer hover:bg-gray-200 transition" :class="{'bg-blue-100': sortColumn === 'imp'}">
+                                    Imp<br>(S) <span v-if="sortColumn === 'imp'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span>
+                                </th>
+                                <th @click="ordenarPor('des')" class="cursor-pointer hover:bg-gray-200 transition" :class="{'bg-blue-100': sortColumn === 'des'}">
+                                    Des<br>(S) <span v-if="sortColumn === 'des'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span>
+                                </th>
+                                <th @click="ordenarPor('diagSlack')" class="cursor-pointer hover:bg-gray-200 transition" :class="{'bg-blue-100': sortColumn === 'diagSlack'}">
+                                    Diag.<br>(Slack) <span v-if="sortColumn === 'diagSlack'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span>
+                                </th>
+                                <th @click="ordenarPor('sev')" class="cursor-pointer hover:bg-gray-200 transition" :class="{'bg-blue-100': sortColumn === 'sev'}">
+                                    Sev<br>(FQA) <span v-if="sortColumn === 'sev'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span>
+                                </th>
+                                <th @click="ordenarPor('descSev')" class="min-w-[100px] cursor-pointer hover:bg-gray-200 transition" :class="{'bg-blue-100': sortColumn === 'descSev'}">
+                                    Descrição<br>Sev <span v-if="sortColumn === 'descSev'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span>
+                                </th>
+                                <th @click="ordenarPor('prob')" class="cursor-pointer hover:bg-gray-200 transition" :class="{'bg-blue-100': sortColumn === 'prob'}">
+                                    Prob<br>(FQA) <span v-if="sortColumn === 'prob'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span>
+                                </th>
+                                <th @click="ordenarPor('descProb')" class="min-w-[100px] cursor-pointer hover:bg-gray-200 transition" :class="{'bg-blue-100': sortColumn === 'descProb'}">
+                                    Descrição<br>Prob <span v-if="sortColumn === 'descProb'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span>
+                                </th>
+                                <th @click="ordenarPor('nivelRisco')" class="min-w-[100px] cursor-pointer hover:bg-gray-200 transition" :class="{'bg-blue-100': sortColumn === 'nivelRisco'}">
+                                    Nível de Risco<br>(FQA) <span v-if="sortColumn === 'nivelRisco'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span>
+                                </th>
                                 <th data-html2canvas-ignore="true">Ação</th>
                             </tr>
                         </thead>
@@ -599,6 +622,266 @@
                 </div>
             </div>
         </div>
+
+        <!-- Modal de Ajuda -->
+        <div v-if="mostrarAjuda" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" @click.self="mostrarAjuda = false">
+            <div class="bg-white rounded-lg shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+                <!-- Cabeçalho do Modal -->
+                <div class="sticky top-0 bg-blue-700 text-white p-4 rounded-t-lg flex justify-between items-center">
+                    <h2 class="text-xl font-bold">❓ Ajuda - Guia de Funcionalidades</h2>
+                    <button @click="mostrarAjuda = false" class="text-white hover:text-gray-200 text-2xl font-bold">&times;</button>
+                </div>
+
+                <!-- Conteúdo do Modal -->
+                <div class="p-6 text-gray-800">
+                    <p class="text-sm text-gray-600 mb-6 italic">
+                        Este sistema integra duas metodologias complementares de análise de riscos:
+                        <strong>Matriz Slack (Importância x Desempenho)</strong> e
+                        <strong>Matriz FQA (Severidade x Probabilidade)</strong>.
+                    </p>
+
+                    <!-- Seção: Entrada de Dados -->
+                    <div class="mb-6">
+                        <h3 class="text-lg font-bold text-blue-700 mb-3 border-b-2 border-blue-200 pb-2">📝 Entrada de Dados</h3>
+
+                        <div class="space-y-3">
+                            <div>
+                                <p class="font-semibold text-gray-700">• Organização (campo opcional):</p>
+                                <p class="text-sm text-gray-600 ml-4">
+                                    Permite inserir o nome da sua organização. Esta informação será exibida nos documentos exportados (Excel e PDF), facilitando a identificação.
+                                </p>
+                            </div>
+
+                            <div>
+                                <p class="font-semibold text-gray-700">• ID:</p>
+                                <p class="text-sm text-gray-600 ml-4">
+                                    Identificador numérico único para cada risco. É gerado automaticamente de forma sequencial, mas pode ser alterado manualmente se necessário.
+                                </p>
+                            </div>
+
+                            <div>
+                                <p class="font-semibold text-gray-700">• Rubrica de Segurança:</p>
+                                <p class="text-sm text-gray-600 ml-4">
+                                    Descrição textual do risco identificado (ex: "Zonas de trabalho mal sinalizadas", "Equipamentos sem manutenção").
+                                </p>
+                            </div>
+
+                            <div>
+                                <p class="font-semibold text-gray-700">• Importância (Slack) - Escala 1-9:</p>
+                                <p class="text-sm text-gray-600 ml-4">
+                                    Avalia a gravidade potencial do risco:<br>
+                                    <span class="font-mono text-xs">1 = Risco grave e iminente | 5 = Pouco importante | 9 = Sem importância</span>
+                                </p>
+                            </div>
+
+                            <div>
+                                <p class="font-semibold text-gray-700">• Desempenho (Slack) - Escala 1-9:</p>
+                                <p class="text-sm text-gray-600 ml-4">
+                                    Avalia o desempenho atual da organização em gerenciar este risco:<br>
+                                    <span class="font-mono text-xs">1 = Excelente | 5 = Ruim | 9 = Péssimo</span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Seção: Botões de Ação -->
+                    <div class="mb-6">
+                        <h3 class="text-lg font-bold text-blue-700 mb-3 border-b-2 border-blue-200 pb-2">🔧 Botões de Ação</h3>
+
+                        <div class="space-y-3">
+                            <div>
+                                <p class="font-semibold text-blue-600">❓ Ajuda:</p>
+                                <p class="text-sm text-gray-600 ml-4">
+                                    Exibe esta janela de ajuda com explicações detalhadas sobre todas as funcionalidades do sistema.
+                                </p>
+                            </div>
+
+                            <div>
+                                <p class="font-semibold text-slate-600">Exemplos:</p>
+                                <p class="text-sm text-gray-600 ml-4">
+                                    Carrega 18 riscos hipotéticos pré-definidos na planilha para demonstração do sistema.
+                                    Útil para testes, treinamento e compreensão visual das matrizes de risco.
+                                </p>
+                            </div>
+
+                            <div>
+                                <p class="font-semibold text-red-600">Limpar Tudo:</p>
+                                <p class="text-sm text-gray-600 ml-4">
+                                    Remove todos os riscos cadastrados da tabela e gráficos.
+                                    <strong class="text-red-600">Atenção:</strong> Esta ação solicita confirmação antes de executar, pois não pode ser desfeita.
+                                </p>
+                            </div>
+
+                            <div>
+                                <p class="font-semibold text-purple-600">Salvar:</p>
+                                <p class="text-sm text-gray-600 ml-4">
+                                    Exporta todos os riscos cadastrados para um arquivo JSON que pode ser baixado.
+                                    Este arquivo preserva todos os dados e pode ser usado posteriormente com o botão "Importar" para restaurar as informações.
+                                </p>
+                            </div>
+
+                            <div>
+                                <p class="font-semibold text-indigo-600">Importar:</p>
+                                <p class="text-sm text-gray-600 ml-4">
+                                    Permite carregar riscos previamente salvos através de um arquivo JSON (gerado pelo botão "Salvar").
+                                    Ao importar, os dados atuais são substituídos pelos dados do arquivo.
+                                </p>
+                            </div>
+
+                            <div>
+                                <p class="font-semibold text-green-600">Excel:</p>
+                                <p class="text-sm text-gray-600 ml-4">
+                                    Exporta toda a tabela de riscos para um arquivo Excel (.xlsx) formatado, contendo todas as colunas:
+                                    ID, Rubrica, Importância, Desempenho, Diagnóstico Slack, Severidade, Probabilidade e Nível de Risco FQA.
+                                    Ideal para análises externas, arquivamento e compartilhamento.
+                                </p>
+                            </div>
+
+                            <div>
+                                <p class="font-semibold text-red-600">PDF:</p>
+                                <p class="text-sm text-gray-600 ml-4">
+                                    Gera um relatório completo em formato PDF contendo os dois gráficos (Matriz Slack e Matriz FQA)
+                                    e a tabela com todos os riscos cadastrados. Excelente para apresentações, documentação oficial e relatórios gerenciais.
+                                </p>
+                            </div>
+
+                            <div>
+                                <p class="font-semibold text-gray-600">A- / A+:</p>
+                                <p class="text-sm text-gray-600 ml-4">
+                                    Controles de zoom de fonte que diminuem (A-) ou aumentam (A+) o tamanho da fonte da tabela,
+                                    facilitando a leitura e adaptação às preferências visuais do usuário.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Seção: Gráficos -->
+                    <div class="mb-6">
+                        <h3 class="text-lg font-bold text-blue-700 mb-3 border-b-2 border-blue-200 pb-2">📊 Gráficos Gerados</h3>
+
+                        <div class="space-y-3">
+                            <div>
+                                <p class="font-semibold text-gray-700">1. Matriz Importância x Desempenho (Slack):</p>
+                                <p class="text-sm text-gray-600 ml-4">
+                                    Gráfico que classifica riscos em quatro zonas delimitadas por curvas matemáticas:
+                                </p>
+                                <ul class="text-xs text-gray-600 ml-8 mt-1 space-y-1">
+                                    <li><strong>Excesso:</strong> Risco baixo, mas recursos excessivos alocados</li>
+                                    <li><strong>Adequado:</strong> Risco e recursos balanceados corretamente</li>
+                                    <li><strong>Melhoria:</strong> Requer atenção moderada e melhorias</li>
+                                    <li><strong>Ação Urgente:</strong> Risco alto com desempenho insuficiente</li>
+                                </ul>
+                            </div>
+
+                            <div>
+                                <p class="font-semibold text-gray-700">2. Matriz de Risco FQA (Severidade x Probabilidade):</p>
+                                <p class="text-sm text-gray-600 ml-4">
+                                    Matriz 5x5 colorida que classifica riscos em cinco níveis baseados no produto entre severidade e probabilidade:
+                                </p>
+                                <ul class="text-xs text-gray-600 ml-8 mt-1 space-y-1">
+                                    <li><span class="inline-block w-3 h-3 bg-green-200 border"></span> <strong>Irrelevante:</strong> Risco desprezível</li>
+                                    <li><span class="inline-block w-3 h-3 bg-green-400 border"></span> <strong>Baixo:</strong> Risco aceitável</li>
+                                    <li><span class="inline-block w-3 h-3 bg-yellow-300 border"></span> <strong>Moderado:</strong> Requer monitoramento</li>
+                                    <li><span class="inline-block w-3 h-3 bg-orange-400 border"></span> <strong>Alto:</strong> Requer ação prioritária</li>
+                                    <li><span class="inline-block w-3 h-3 bg-red-600 border"></span> <strong>Crítico:</strong> Requer ação imediata</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Seção: Funcionalidades Especiais -->
+                    <div class="mb-6">
+                        <h3 class="text-lg font-bold text-blue-700 mb-3 border-b-2 border-blue-200 pb-2">⚡ Funcionalidades Especiais</h3>
+
+                        <div class="space-y-3">
+                            <div>
+                                <p class="font-semibold text-gray-700">• Agrupamento de IDs Sobrepostos:</p>
+                                <p class="text-sm text-gray-600 ml-4">
+                                    Quando múltiplos riscos possuem as mesmas coordenadas nos gráficos, o sistema agrupa automaticamente
+                                    seus IDs em um único rótulo (ex: "3; 7; 12"), facilitando a visualização.
+                                </p>
+                            </div>
+
+                            <div>
+                                <p class="font-semibold text-gray-700">• Persistência Automática:</p>
+                                <p class="text-sm text-gray-600 ml-4">
+                                    Todos os dados inseridos são automaticamente salvos no navegador (LocalStorage).
+                                    Ao reabrir o aplicativo, seus riscos e configurações estarão preservados.
+                                </p>
+                            </div>
+
+                            <div>
+                                <p class="font-semibold text-gray-700">• Modo App (Instalação no Celular):</p>
+                                <p class="text-sm text-gray-600 ml-4">
+                                    O sistema pode ser instalado como aplicativo no celular ou computador, funcionando offline
+                                    e proporcionando experiência similar a um app nativo.
+                                </p>
+
+                                <div class="mt-3 ml-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                    <p class="font-semibold text-blue-800 text-sm mb-2">📱 Como instalar no Android:</p>
+                                    <ol class="text-xs text-gray-700 ml-4 space-y-1 list-decimal">
+                                        <li>Abra o navegador <strong>Chrome</strong> no seu celular</li>
+                                        <li>Acesse: <code class="bg-white px-1 py-0.5 rounded text-blue-600">https://sistema-riscos-sst.vercel.app/</code></li>
+                                        <li>Toque nos <strong>três pontinhos</strong> (⋮) no canto superior direito</li>
+                                        <li>Selecione <strong>"Adicionar à tela inicial"</strong> ou <strong>"Instalar aplicativo"</strong></li>
+                                        <li>Confirme tocando em <strong>"Instalar"</strong></li>
+                                        <li>Pronto! O app será instalado no celular e aparecerá na tela inicial como um app normal 🎉</li>
+                                    </ol>
+                                </div>
+
+                                <div class="mt-2 ml-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                    <p class="font-semibold text-gray-800 text-sm mb-2">🍎 Como instalar no iPhone/iPad:</p>
+                                    <ol class="text-xs text-gray-700 ml-4 space-y-1 list-decimal">
+                                        <li>Abra o navegador <strong>Safari</strong> (obrigatório no iOS)</li>
+                                        <li>Acesse: <code class="bg-white px-1 py-0.5 rounded text-blue-600">https://sistema-riscos-sst.vercel.app/</code></li>
+                                        <li>Toque no ícone de <strong>Compartilhar</strong> (□↑) na parte inferior</li>
+                                        <li>Role para baixo e toque em <strong>"Adicionar à Tela de Início"</strong></li>
+                                        <li>Edite o nome se desejar e toque em <strong>"Adicionar"</strong></li>
+                                        <li>O app aparecerá na tela inicial como qualquer outro aplicativo! ✨</li>
+                                    </ol>
+                                </div>
+
+                                <p class="text-xs text-gray-500 ml-4 mt-2 italic">
+                                    💡 Após instalado, o app funciona mesmo sem internet (dados salvos localmente).
+                                </p>
+                            </div>
+
+                            <div>
+                                <p class="font-semibold text-gray-700">• Edição de Riscos:</p>
+                                <p class="text-sm text-gray-600 ml-4">
+                                    Clique no ícone <strong>✎</strong> na coluna "Ação" para editar qualquer risco.
+                                    Os dados preencherão o formulário e o botão mudará para "Atualizar".
+                                    Para cancelar, clique em "Cancelar" ou adicione um novo risco.
+                                </p>
+                            </div>
+
+                            <div>
+                                <p class="font-semibold text-gray-700">• Exclusão Individual:</p>
+                                <p class="text-sm text-gray-600 ml-4">
+                                    Clique no ícone <strong>✕</strong> na coluna "Ação" para remover um risco específico da lista.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Rodapé informativo -->
+                    <div class="mt-8 pt-4 border-t-2 border-gray-200">
+                        <p class="text-xs text-gray-500 text-center">
+                            <strong>Sistema de Gestão de Riscos SST v1.0</strong><br>
+                            Metodologia Híbrida: Slack (Importância x Desempenho) & FQA (Severidade x Probabilidade)
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Rodapé do Modal com botão de fechar -->
+                <div class="sticky bottom-0 bg-gray-100 p-4 rounded-b-lg border-t">
+                    <button @click="mostrarAjuda = false" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition">
+                        Fechar
+                    </button>
+                </div>
+            </div>
+        </div>
+
     </div>
 
 <script>
@@ -1128,21 +1411,21 @@
 
         // --- 2. CONFIGURAÇÕES & MAPS ---
         const MAP_IMP_SEV = { 1:5, 2:5, 3:4, 4:4, 5:3, 6:2, 7:2, 8:1, 9:1 };
-        const MAP_DES_PROB = { 1:1, 2:1, 3:2, 4:2, 5:3, 6:4, 7:5, 8:5, 9:5 };
+        const MAP_DES_PROB = { 1:1, 2:1, 3:2, 4:2, 5:3, 6:4, 7:4, 8:5, 9:5 };
 
         const MAP_SEV_DESC = {
-            1: "Lesão muito leve",
-            2: "Lesão leve",
-            3: "Lesão leve",
-            4: "Lesão moderada",
+            1: "Lesão leve, efeitos reversíveis",
+            2: "Lesão moderada, efeitos reversíveis",
+            3: "Lesão grave, efeitos reversíveis",
+            4: "Lesão grave, efeitos irreversíveis",
             5: "Lesão crítica ou fatal"
         };
         const MAP_PROB_DESC = {
             1: "Altamente improvável",
             2: "Improvável",
-            3: "Possível",
+            3: "Pouco provável",
             4: "Provável",
-            5: "Muito provável"
+            5: "Altamente provável"
         };
 
         const COLOR_EXCESSO = 'rgba(209, 213, 219, 0.5)';
@@ -1333,6 +1616,9 @@
                 const organizacao = ref('');
                 const fontSize = ref(window.innerWidth <= 768 ? 12 : 14); // Tamanho inicial (ajustável com botões A-/A+)
                 const fileInput = ref(null);
+                const mostrarAjuda = ref(false);
+                const sortColumn = ref('id'); // Coluna de ordenação atual
+                const sortOrder = ref('asc'); // 'asc' ou 'desc'
                 let slackChartInst = null, fqaChartInst = null;
 
                 const calcularRisco = (r) => {
@@ -1343,7 +1629,34 @@
                     const sev = MAP_IMP_SEV[r.imp], prob = MAP_DES_PROB[r.des];
                     return { ...r, diagSlack: diag, sev, prob, descSev: MAP_SEV_DESC[sev], descProb: MAP_PROB_DESC[prob], nivelRisco: getNivelRisco(sev, prob) };
                 };
-                const riscosOrdenados = computed(() => [...riscos.value].map(calcularRisco).sort((a,b) => a.id - b.id));
+                const riscosOrdenados = computed(() => {
+                    const data = [...riscos.value].map(calcularRisco);
+
+                    // Ordenação dinâmica baseada na coluna e ordem selecionadas
+                    return data.sort((a, b) => {
+                        let valA = a[sortColumn.value];
+                        let valB = b[sortColumn.value];
+
+                        // Tratamento especial para diferentes tipos de dados
+                        if (sortColumn.value === 'rubrica' || sortColumn.value === 'diagSlack' ||
+                            sortColumn.value === 'descSev' || sortColumn.value === 'descProb' ||
+                            sortColumn.value === 'nivelRisco') {
+                            // Ordenação alfabética para strings
+                            valA = (valA || '').toString().toLowerCase();
+                            valB = (valB || '').toString().toLowerCase();
+                        } else {
+                            // Ordenação numérica
+                            valA = Number(valA) || 0;
+                            valB = Number(valB) || 0;
+                        }
+
+                        if (sortOrder.value === 'asc') {
+                            return valA > valB ? 1 : valA < valB ? -1 : 0;
+                        } else {
+                            return valA < valB ? 1 : valA > valB ? -1 : 0;
+                        }
+                    });
+                });
 
                 const agruparRiscos = (dados, tipo) => {
                     const groups = {};
@@ -1370,25 +1683,24 @@
 
                 const carregarExemplos = () => {
                     riscos.value = [
-                        { id: 1, rubrica: 'As zonas de trabalho', imp: 5, des: 4 },
-                        { id: 2, rubrica: 'A organização técnica entre postos', imp: 1, des: 3 },
-                        { id: 3, rubrica: 'Os locais de trabalho', imp: 3, des: 6 },
-                        { id: 4, rubrica: 'Os riscos de acidentes', imp: 2, des: 5 },
-                        { id: 5, rubrica: 'Os comandos e sinais', imp: 5, des: 7 },
-                        { id: 6, rubrica: 'As ferramentas e material de trabalho', imp: 4, des: 6 },
-                        { id: 7, rubrica: 'O trabalho repetitivo', imp: 3, des: 2 },
-                        { id: 8, rubrica: 'Os manuseios / levantamento de peso', imp: 2, des: 5 },
-                        { id: 9, rubrica: 'A carga mental', imp: 1, des: 7 },
-                        { id: 10, rubrica: 'A iluminação', imp: 3, des: 3 },
-                        { id: 11, rubrica: 'O ruído', imp: 2, des: 8 },
-                        { id: 12, rubrica: 'Os ambientes térmicos', imp: 5, des: 9 },
-                        { id: 13, rubrica: 'Os riscos químicos e biológicos', imp: 4, des: 4 },
-                        { id: 14, rubrica: 'As vibrações', imp: 5, des: 5 },
-                        { id: 15, rubrica: 'As rel de trabalho entre trabalhadores', imp: 6, des: 6 },
-                        { id: 16, rubrica: 'O ambiente social local e geral', imp: 7, des: 7 },
-                        { id: 17, rubrica: 'O conteúdo do trabalho', imp: 2, des: 7 },
-                        { id: 18, rubrica: 'O ambiente psicossocial', imp: 7, des: 8 }
+                        { id: 1, rubrica: 'As zonas de trabalho', imp: 4, des: 3 },
+                        { id: 2, rubrica: 'A organização técnica entre postos', imp: 5, des: 4 },
+                        { id: 3, rubrica: 'Os locais de trabalho', imp: 3, des: 5 },
+                        { id: 4, rubrica: 'Os riscos de acidentes', imp: 1, des: 3 },
+                        { id: 5, rubrica: 'Os comandos e sinais', imp: 5, des: 3 },
+                        { id: 6, rubrica: 'As ferramentas e material de trabalho', imp: 4, des: 2 },
+                        { id: 7, rubrica: 'O trabalho repetitivo', imp: 4, des: 3 },
+                        { id: 8, rubrica: 'Os manuseios / levantamento de peso', imp: 3, des: 3 },
+                        { id: 9, rubrica: 'A carga mental', imp: 4, des: 2 },
+                        { id: 10, rubrica: 'A iluminação', imp: 5, des: 3 },
+                        { id: 11, rubrica: 'O ruído', imp: 4, des: 4 },
+                        { id: 12, rubrica: 'Os ambientes térmicos', imp: 4, des: 4 },
+                        { id: 15, rubrica: 'As rel. de trabalho entre trabalhadores', imp: 6, des: 2 },
+                        { id: 16, rubrica: 'O ambiente social local e geral', imp: 5, des: 2 },
+                        { id: 17, rubrica: 'O conteúdo do trabalho', imp: 5, des: 5 },
+                        { id: 18, rubrica: 'O ambiente psicossocial', imp: 4, des: 1 }
                     ];
+                    organizacao.value = 'CANTEIRO B';
                     salvarLocalStorage();
                     atualizarGraficos();
                 };
@@ -1428,6 +1740,18 @@
                     URL.revokeObjectURL(url);
 
                     alert('✅ Dados salvos com sucesso!');
+                };
+
+                // NOVA FUNÇÃO: Ordenar tabela por coluna
+                const ordenarPor = (coluna) => {
+                    if (sortColumn.value === coluna) {
+                        // Se já está ordenando por esta coluna, inverte a ordem
+                        sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        // Se é uma nova coluna, ordena em ordem ascendente
+                        sortColumn.value = coluna;
+                        sortOrder.value = 'asc';
+                    }
                 };
 
                 // NOVA FUNÇÃO: Trigger para input file
@@ -1823,7 +2147,8 @@
 
                 return {
                     riscos, form, modoEdicao, riscosOrdenados,
-                    activeTab, organizacao, fontSize, fileInput,
+                    activeTab, organizacao, fontSize, fileInput, mostrarAjuda,
+                    sortColumn, sortOrder, ordenarPor,
                     adicionarRisco, editarRisco, cancelarEdicao, excluirRisco,
                     carregarExemplos, limparTudo, salvarDados, triggerImport, importarDados,
                     aumentarFonte, diminuirFonte,

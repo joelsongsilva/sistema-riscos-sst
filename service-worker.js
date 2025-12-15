@@ -1,4 +1,4 @@
-const CACHE_NAME = 'riscos-sst-v1.5.7-flexgrow';
+const CACHE_NAME = 'riscos-sst-v1.0';
 const urlsToCache = [
   './',
   './index.html',
